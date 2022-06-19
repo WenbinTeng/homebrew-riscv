@@ -11,14 +11,15 @@ module backend (
     input   [31:0]  operand_a,
     input   [31:0]  operand_b,
     input   [31:0]  reg_do,
-    output  [31:0]  reg_di
+    output  [31:0]  reg_di,
+    output          carry
 );
 
     wire [7:0] pn;
     wire [7:0] gn;
     wire [1:0] pa;
     wire [1:0] ga;
-    wire [8:0] carry = 'b0;
+    wire [8:0] c = 'b0;
     wire [31:0] f;
 
     genvar i;
@@ -28,7 +29,7 @@ module backend (
                 operand_a[i*4+3:i*4],
                 operand_b[i*4+3:i*4],
                 alu_op[2:0],
-                carry[i],
+                c[i],
                 gn[i],
                 pn[i],
                 f[i*4+3:i*4]
@@ -39,33 +40,35 @@ module backend (
     _74x182 u_74x182_0 (
         gn[3:0],
         pn[3:0],
-        carry[0],
-        carry[1],
-        carry[2],
-        carry[3],
+        c[0],
+        c[1],
+        c[2],
+        c[3],
         ga[0],
         pa[0]
     );
     _74x182 u_74x182_1 (
         gn[7:4],
         pn[7:4],
-        carry[4],
-        carry[5],
-        carry[6],
-        carry[7],
+        c[4],
+        c[5],
+        c[6],
+        c[7],
         ga[1],
         pa[1]
     );
     _74x182 u_74x182_2 (
         {2'b0, ga},
         {2'b0, pa},
-        carry[0],
-        carry[4],
-        carry[8],
+        c[0],
+        c[4],
+        c[8],
         x,
         x,
         x
     );
+
+    assign carry = c[8];
 
     wire [31:0] operand_pos;
     wire [31:0] operand_rev;
@@ -99,7 +102,7 @@ module backend (
                 shift_layer[i],
                 shift_right[i],
                 operand_b[4-i],
-                shift_layer[i + 1]
+                shift_layer[i+1]
             );
         end
     endgenerate
