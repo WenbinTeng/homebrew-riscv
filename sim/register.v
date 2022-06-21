@@ -2,39 +2,46 @@
 `include "./include/_74x574.v"
 `include "./include/_cy7c1021.v"
 
-module regfile(
-    input clk,
-    input we,
-    input [4:0] ra,
-    input [4:0] rb,
-    input [4:0] rd,
-    input [31:0] di,
-    output [31:0] qa,
-    output [31:0] qb
+module register(
+    input           clk,
+    input           rst,
+    input           we,
+    input   [ 4:0]  ra,
+    input   [ 4:0]  rb,
+    input   [ 4:0]  rd,
+    input   [31:0]  di,
+    output  [31:0]  qa,
+    output  [31:0]  qb,
+    input           debug_reg_oe,
+    input           debug_reg_we,
+    input   [ 4:0]  debug_reg_ra,
+    input   [ 4:0]  debug_reg_rb,
+    input   [31:0]  debug_reg_data
 );
 
-    wire [7:0] _ra;
-    wire [7:0] _rb;
+    wire [2:0] dontcare;
+    wire [4:0] _ra;
+    wire [4:0] _rb;
 
     _74x244 u_74x244_a0 (
         {~clk, ~clk},
         {3'b0, ra},
-        _ra
+        {dontcare, _ra}
     );
     _74x244 u_74x244_a1 (
         {clk, clk},
         {3'b0, rd},
-        _ra
+        {dontcare, _ra}
     );
     _74x244 u_74x244_b0 (
         {~clk, ~clk},
         {3'b0, rb},
-        _rb
+        {dontcare, _rb}
     );
     _74x244 u_74x244_b1 (
         {clk, clk},
         {3'b0, rd},
-        _rb
+        {dontcare, _rb}
     );
 
     wire [ 7:0] buffer_we;
@@ -59,8 +66,12 @@ module regfile(
         end
     endgenerate
 
-    wire [31:0] apin = ~clk ? buffer_di : 'bz;
-    wire [31:0] bpin = ~clk ? buffer_di : 'bz;
+    wire reg_oe = rst ? debug_reg_oe : 1'b0;
+    wire reg_we = rst ? debug_reg_we : we;
+    wire [4:0] reg_ra = rst ? debug_reg_ra : _ra;
+    wire [4:0] reg_rb = rst ? debug_reg_rb : _rb;
+    wire [31:0] apin = rst ? debug_reg_data : ~clk ? buffer_di : 'bz;
+    wire [31:0] bpin = rst ? debug_reg_data : ~clk ? buffer_di : 'bz;
 
     assign qa = apin;
     assign qb = bpin;

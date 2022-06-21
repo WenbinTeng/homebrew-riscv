@@ -2,25 +2,49 @@
 `include "./include/_74x182.v"
 `include "./include/_74x381.v"
 `include "./include/_cy7c1021.v"
+`include "./util/_bus32.v"
 `include "./util/_mux32.v"
+`include "./shifter.v"
 
 module backend (
     input           clk,
-    input   [3:0]   alu_op,
-    input   [5:0]   mem_op,
-    input   [31:0]  operand_a,
-    input   [31:0]  operand_b,
-    input   [31:0]  reg_do,
+    input   [ 7:0]  alu_op,
+    input   [ 9:0]  mem_op,
+    input   [31:0]  qa,
+    input   [31:0]  qb,
+    input   [31:0]  alu_imm_1,
+    input   [31:0]  alu_imm_2,
     output  [31:0]  reg_di,
-    output          carry
+    output          is_lt,
+    output          is_ltu,
+    output          is_zero,
+    input           debug_dmem_oe,
+    input           debug_dmem_we,
+    input   [31:0]  debug_dmem_addr,
+    input   [31:0]  debug_dmem_data
 );
+
+    _mux32 u_mux32_0 (
+        alu_imm_1,
+        qa,
+        alu_src_1,
+        operand_a
+    );
+    _mux32 u_mux32_1 (
+        alu_imm_2,
+        qb,
+        alu_src_2,
+        operand_b
+    );
+
+    wire [31:0] f;
+    wire [31:0] h;
 
     wire [7:0] pn;
     wire [7:0] gn;
     wire [1:0] pa;
     wire [1:0] ga;
     wire [8:0] c = 'b0;
-    wire [31:0] f;
 
     genvar i;
     generate
@@ -68,91 +92,72 @@ module backend (
         x
     );
 
-    assign carry = c[8];
-
-    wire [31:0] operand_pos;
-    wire [31:0] operand_rev;
-
-    generate
-        for (i = 0; i < 32; i = i + 1) begin
-            assign operand_pos[i] = operand_a[i];
-            assign operand_rev[i] = operand_a[31-i];
-        end
-    endgenerate
-    
-    wire [31:0] shift_layer [5:0];
-    wire [31:0] shift_right [4:0];
-
-    _mux32 u_mux32_0 (
-        operand_pos,
-        operand_rev,
-        alu_op[0],
-        shift_layer[0]
-    );
-
-    assign shift_right[0] = {{16{alu_op[2] & shift_layer[0][31]}}, shift_layer[0][31:16]};
-    assign shift_right[1] = {{ 8{alu_op[2] & shift_layer[1][31]}}, shift_layer[1][31: 8]};
-    assign shift_right[2] = {{ 4{alu_op[2] & shift_layer[2][31]}}, shift_layer[2][31: 4]};
-    assign shift_right[3] = {{ 2{alu_op[2] & shift_layer[3][31]}}, shift_layer[3][31: 2]};
-    assign shift_right[4] = {{ 1{alu_op[2] & shift_layer[4][31]}}, shift_layer[4][31: 1]};
-
-    generate
-        for (i = 0; i < 5; i = i + 1) begin
-            _mux32 u_mux32 (
-                shift_layer[i],
-                shift_right[i],
-                operand_b[4-i],
-                shift_layer[i+1]
-            );
-        end
-    endgenerate
-
-    wire [31:0] h;
-    wire [31:0] h_pos;
-    wire [31:0] h_rev;
-
-    generate
-        for (i = 0; i < 32; i = i + 1) begin
-            assign h_pos[i] = shift_layer[5][i];
-            assign h_rev[i] = shift_layer[5][31-i];
-        end
-    endgenerate
-
-    _mux32 u_mux32_1 (
-        h_pos,
-        h_rev,
-        alu_op[0],
+    shifter u_shifter (
+        operand_a,
+        operand_b,
+        alu_op,
         h
     );
 
+    assign is_lt   = (operand_a[31] & ~operand_b[31]) | (~operand_a[31] & ~operand_b[31] & f[31]) | (operand_a[31] & operand_b[31] & f[31]);
+    assign is_ltu  = c[8];
+    assign is_zero = ~(|f);
+
+    wire slt  = alu_op[7];
+    wire sltu = alu_op[6];
+    wire sll  = alu_op[5];
+    wire srl  = alu_op[4];
+    wire sra  = alu_op[3];
+    wire [2:0] al = alu_op[2:0];
     wire [31:0] alu_data;
 
-    _mux32 u_mux32_2 (
-        f,
-        h,
-        alu_op[3],
+    _bus32 u_bus32_0 (
+        {slt|sltu,                          sll|srl|sra,   |al},
+        {{31'b0, slt&is_lt|sltu&is_ltu},    h,             f  },
         alu_data
     );
 
-    wire oe = mem_op[5];
-    wire we = mem_op[4];
-    wire [31:0] pin = we ? reg_di : 32'bz;
+    wire sign = mem_op[9];
+    wire byte = mem_op[8];
+    wire half = mem_op[7];
+    wire word = mem_op[6];
+    wire oe   = mem_op[5];
+    wire we   = mem_op[4];
+    wire [3:0] byte_enable = mem_op[3:0];
+    wire [31:0] mem_load;
+
+    wire dmem_oe = rst ? debug_dmem_oe : oe;
+    wire dmem_we = rst ? debug_dmem_we : we;
+    wire [ 3:0] dmem_byte_enable = rst ? 'b0 : byte_enable;
+    wire [31:0] dmem_addr = rst ? debug_dmem_addr : currPc[17:2];
+    wire [31:0] dmem_data = rst ? debug_dmem_data : we ? qb : 32'bz;
 
     generate
         for (i = 0; i < 2; i = i + 1) begin
             _cy7c1021 u_cy7c1021 (
                 clk,
                 1'b0,
-                oe,
-                we,
-                mem_op[i*2],
-                mem_op[i*2+1],
-                alu_data[15:0],
-                pin[16*i+15:16*i]
+                dmem_oe,
+                dmem_we,
+                dmem_byte_enable[i*2],
+                dmem_byte_enable[i*2+1],
+                dmem_addr[15:0],
+                dmem_data[16*i+15:16*i]
             );
         end
     endgenerate
-    
-    assign reg_do = oe ? pin : alu_data;
+
+    _bus32 u_bus32_1 (
+        {byte,                                          half,                                           word           },
+        {{{24{sign & dmem_data[7]}}, dmem_data[7:0]},   {{16{sign & dmem_data[15]}}, dmem_data[15:0]},  dmem_data[31:0]},
+        mem_load
+    );
+
+    _mux32 u_mux32_2 (
+        alu_data,
+        mem_load,
+        oe,
+        reg_di
+    );
     
 endmodule

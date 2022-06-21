@@ -1,6 +1,6 @@
 `include "./util/_add32.v"
 `include "./util/_reg32.v"
-`include "./util/_mux32fromN.v"
+`include "./util/_mux32.v"
 `include "./include/_cy7c1021.v"
 
 module IF (
@@ -9,9 +9,12 @@ module IF (
     input   [31:0]  rst_addr,
     input           brh,
     input   [31:0]  brh_addr,
-    input           ram_oe,
-    input           ram_we,
-    inout   [31:0]  ram_data
+    input           debug_imem_oe,
+    input           debug_imem_we,
+    input   [31:0]  debug_imem_addr,
+    input   [31:0]  debug_imem_data,
+    output  [31:0]  pc,
+    output  [31:0]  inst
 );
 
     wire [31:0] currPc;
@@ -37,20 +40,28 @@ module IF (
         currPc
     );
 
+    wire imem_oe = rst ? debug_imem_oe : 1'b0;
+    wire imem_we = rst ? debug_imem_we : 1'b1;
+    wire [31:0] imem_addr = rst ? debug_imem_addr : currPc[17:2];
+    wire [31:0] imem_data = rst ? debug_imem_data : 32'bz;
+
     genvar i;
     generate
         for (i = 0; i < 2; i = i + 1) begin
             _cy7c1021 u_cy7c1021 (
                 clk,
                 1'b0,
-                ram_oe,
-                ram_we,
+                imem_oe,
+                imem_we,
                 1'b0,
                 1'b0,
                 currPc[17:2],
-                ram_data[i*16+15:i*16]
+                imem_data[i*16+15:i*16]
             );
         end
     endgenerate
+
+    assign pc = currPc;
+    assign inst = imem_data;
     
 endmodule
