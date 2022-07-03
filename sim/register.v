@@ -11,12 +11,7 @@ module register(
     input   [ 4:0]  rd,
     input   [31:0]  di,
     output  [31:0]  qa,
-    output  [31:0]  qb,
-    input           debug_reg_oe,
-    input           debug_reg_we,
-    input   [ 4:0]  debug_reg_ra,
-    input   [ 4:0]  debug_reg_rb,
-    input   [31:0]  debug_reg_data
+    output  [31:0]  qb
 );
 
     wire [2:0] dontcare;
@@ -66,12 +61,8 @@ module register(
         end
     endgenerate
 
-    wire reg_oe = rst ? debug_reg_oe : 1'b0;
-    wire reg_we = rst ? debug_reg_we : we;
-    wire [4:0] reg_ra = rst ? debug_reg_ra : _ra;
-    wire [4:0] reg_rb = rst ? debug_reg_rb : _rb;
-    wire [31:0] apin = rst ? debug_reg_data : ~clk ? buffer_di : 'bz;
-    wire [31:0] bpin = rst ? debug_reg_data : ~clk ? buffer_di : 'bz;
+    wire [31:0] apin =  ~clk ? buffer_di : 'bz;
+    wire [31:0] bpin =  ~clk ? buffer_di : 'bz;
 
     assign qa = apin;
     assign qb = bpin;
