@@ -1,8 +1,8 @@
-`include "./include/_74x138.v"
-`include "./util/_add32.v"
-`include "./util/_bus32.v"
-`include "./util/_dec32.v"
-`include "./util/_mux32.v"
+// `include "./include/_74x138.v"
+// `include "./util/_add32.v"
+// `include "./util/_bus32.v"
+// `include "./util/_dec32.v"
+// `include "./util/_mux32.v"
 
 module ID (
     input           clk,
@@ -20,8 +20,10 @@ module ID (
     output  [31:0]  alu_imm_1,  // imm1
     output  [31:0]  alu_imm_2,  // imm2
     output  [ 7:0]  alu_op,     // op: slt, sltu, sll, srl, sra, 74x381's op
-    output  [ 9:0]  mem_op,     // op: sign, byte, half, word, load, store, bytes enable
-    output          reg_we
+    output  [ 7:0]  mem_op,     // op: lb, lh, lw, lbu, lhu, sb, sh, sw
+    output          reg_we,
+    output          load,
+    output          store
 );
 
     wire [31:0] inst_enable;
@@ -46,10 +48,10 @@ module ID (
     wire jal = inst_enable[27];
     wire jalr = inst_enable[25];
     wire branch = inst_enable[24];
-    wire load = inst_enable[0];
-    wire store = inst_enable[8];
     wire immediate = inst_enable[4];
     wire register = inst_enable[12];
+    assign load = inst_enable[0];
+    assign store = inst_enable[8];
 
     wire [31:0] u_type_imm = {inst[31:12], 12'b0};
     wire [31:0] j_type_imm = {{11{inst[31]}}, inst[31], inst[19:12], inst[20], inst[30:21], 1'b0};
@@ -60,13 +62,13 @@ module ID (
     reg [4:0] alu_op_rom [7:0];
     reg [9:0] mem_op_rom [4:0];
 
-    wire [13:0] dontcare;
-    wire [7:0] _alu_op = alu_op_rom[{lui|auipc|jal|jalr|load|store, branch, immediate, register, inst[14:12], inst[30]}];
-    wire [9:0] _mem_op = mem_op_rom[{load, store, inst[14:12]}];
+    wire [15:0] dontcare;
+    wire [ 7:0] _alu_op = alu_op_rom[{lui|auipc|jal|jalr|load|store, branch, immediate, register, inst[14:12], inst[30]}];
+    wire [ 7:0] _mem_op = mem_op_rom[{load, store, inst[14:12]}];
 
     _bus32 u_bus32 (
         ~rst,
-        {14'b0, _alu_op, _mem_op},
+        {16'b0, _alu_op, _mem_op},
         {dontcare, alu_op, mem_op}
     );
 
@@ -381,38 +383,38 @@ module ID (
         alu_op_rom[254] = 8'b00000011;
         alu_op_rom[255] = 8'b00000011;
 
-        mem_op_rom[0] = 10'b0000000000;
-        mem_op_rom[1] = 10'b0000000000;
-        mem_op_rom[2] = 10'b0000000000;
-        mem_op_rom[3] = 10'b0000000000;
-        mem_op_rom[4] = 10'b0000000000;
-        mem_op_rom[5] = 10'b0000000000;
-        mem_op_rom[6] = 10'b0000000000;
-        mem_op_rom[7] = 10'b0000000000;
-        mem_op_rom[8] = 10'b0000000000;
-        mem_op_rom[9] = 10'b0000000000;
-        mem_op_rom[10] = 10'b0000000000;
-        mem_op_rom[11] = 10'b0000000000;
-        mem_op_rom[12] = 10'b0000000000;
-        mem_op_rom[13] = 10'b0000000000;
-        mem_op_rom[14] = 10'b0000000000;
-        mem_op_rom[15] = 10'b0000000000;
-        mem_op_rom[16] = 10'b0000010001;
-        mem_op_rom[17] = 10'b0000010011;
-        mem_op_rom[18] = 10'b0000011111;
-        mem_op_rom[19] = 10'b0000000000;
-        mem_op_rom[20] = 10'b0000000000;
-        mem_op_rom[21] = 10'b0000000000;
-        mem_op_rom[22] = 10'b0000000000;
-        mem_op_rom[23] = 10'b0000000000;
-        mem_op_rom[24] = 10'b0000010001;
-        mem_op_rom[25] = 10'b0000010011;
-        mem_op_rom[26] = 10'b0000011111;
-        mem_op_rom[27] = 10'b0000000000;
-        mem_op_rom[28] = 10'b0000000000;
-        mem_op_rom[29] = 10'b0000000000;
-        mem_op_rom[30] = 10'b0000000000;
-        mem_op_rom[31] = 10'b0000000000;
+        mem_op_rom[0] = 8'b00000000;
+        mem_op_rom[1] = 8'b00000000;
+        mem_op_rom[2] = 8'b00000000;
+        mem_op_rom[3] = 8'b00000000;
+        mem_op_rom[4] = 8'b00000000;
+        mem_op_rom[5] = 8'b00000000;
+        mem_op_rom[6] = 8'b00000000;
+        mem_op_rom[7] = 8'b00000000;
+        mem_op_rom[8] = 8'b00000100;
+        mem_op_rom[9] = 8'b00000010;
+        mem_op_rom[10] = 8'b00000001;
+        mem_op_rom[11] = 8'b00000000;
+        mem_op_rom[12] = 8'b00000000;
+        mem_op_rom[13] = 8'b00000000;
+        mem_op_rom[14] = 8'b00000000;
+        mem_op_rom[15] = 8'b00000000;
+        mem_op_rom[16] = 8'b10000000;
+        mem_op_rom[17] = 8'b01000000;
+        mem_op_rom[18] = 8'b00100000;
+        mem_op_rom[19] = 8'b00000000;
+        mem_op_rom[20] = 8'b00010000;
+        mem_op_rom[21] = 8'b00001000;
+        mem_op_rom[22] = 8'b00000000;
+        mem_op_rom[23] = 8'b00000000;
+        mem_op_rom[24] = 8'b10000000;
+        mem_op_rom[25] = 8'b01000000;
+        mem_op_rom[26] = 8'b00100000;
+        mem_op_rom[27] = 8'b00000000;
+        mem_op_rom[28] = 8'b00010000;
+        mem_op_rom[29] = 8'b00001000;
+        mem_op_rom[30] = 8'b00000000;
+        mem_op_rom[31] = 8'b00000000;
     end
     
 endmodule

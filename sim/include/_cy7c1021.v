@@ -3,8 +3,8 @@ module _cy7c1021 (
     input ce,       // Chip Enable (Active LOW)
     input oe,       // Output Enable (Active LOW)
     input we,       // Write Enable (Active LOW)
-    input ble,      // Byte High Enable (Active LOW)
-    input bhe,      // Byte Low Enable (Active LOW)
+    input ble,      // Byte Low Enable (Active LOW)
+    input bhe,      // Byte High Enable (Active LOW)
     input [15:0] a, // Address
     inout [15:0] io // Data Input/Output
 );

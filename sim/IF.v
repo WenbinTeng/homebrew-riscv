@@ -1,7 +1,7 @@
-`include "./util/_add32.v"
-`include "./util/_reg32.v"
-`include "./util/_mux32.v"
-`include "./include/_cy7c1021.v"
+// `include "./util/_add32.v"
+// `include "./util/_reg32.v"
+// `include "./util/_mux32.v"
+// `include "./include/_cy7c1021.v"
 
 module IF (
     input           clk,

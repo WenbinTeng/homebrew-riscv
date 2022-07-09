@@ -1,6 +1,6 @@
-`include "./include/_74x244.v"
-`include "./include/_74x574.v"
-`include "./include/_cy7c1021.v"
+// `include "./include/_74x244.v"
+// `include "./include/_74x574.v"
+// `include "./include/_cy7c1021.v"
 
 module register(
     input           clk,
