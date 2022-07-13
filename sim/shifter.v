@@ -1,9 +1,9 @@
-// `include "./util/_mux32.v"
+`include "./util/_mux32.v"
 
 module shifter (
     input   [31:0]  operand_a,
     input   [31:0]  operand_b,
-    input   [ 2:0]  alu_op,     // op: sll, srl, sra
+    input   [ 2:0]  alu_op,     // op: sll, srl, sra, active LOW
     output  [31:0]  h
 );
 
@@ -22,17 +22,17 @@ module shifter (
     wire [31:0] shift_right [4:0];
 
     _mux32 u_mux32_0 (
-        operand_pos,
         operand_rev,
+        operand_pos,
         alu_op[2],
         shift_layer[0]
     );
 
-    assign shift_right[0] = {{16{alu_op[0] & shift_layer[0][31]}}, shift_layer[0][31:16]};
-    assign shift_right[1] = {{ 8{alu_op[0] & shift_layer[1][31]}}, shift_layer[1][31: 8]};
-    assign shift_right[2] = {{ 4{alu_op[0] & shift_layer[2][31]}}, shift_layer[2][31: 4]};
-    assign shift_right[3] = {{ 2{alu_op[0] & shift_layer[3][31]}}, shift_layer[3][31: 2]};
-    assign shift_right[4] = {{ 1{alu_op[0] & shift_layer[4][31]}}, shift_layer[4][31: 1]};
+    assign shift_right[0] = {{16{~alu_op[0] & shift_layer[0][31]}}, shift_layer[0][31:16]};
+    assign shift_right[1] = {{ 8{~alu_op[0] & shift_layer[1][31]}}, shift_layer[1][31: 8]};
+    assign shift_right[2] = {{ 4{~alu_op[0] & shift_layer[2][31]}}, shift_layer[2][31: 4]};
+    assign shift_right[3] = {{ 2{~alu_op[0] & shift_layer[3][31]}}, shift_layer[3][31: 2]};
+    assign shift_right[4] = {{ 1{~alu_op[0] & shift_layer[4][31]}}, shift_layer[4][31: 1]};
 
     generate
         for (i = 0; i < 5; i = i + 1) begin
@@ -56,8 +56,8 @@ module shifter (
     endgenerate
 
     _mux32 u_mux32_1 (
-        h_pos,
         h_rev,
+        h_pos,
         alu_op[2],
         h
     );

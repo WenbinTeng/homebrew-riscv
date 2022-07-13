@@ -1,4 +1,4 @@
-// `include "../include/_74x138.v"
+`include "../include/_74x138.v"
 
 module _dec32(
     input [4:0] s,

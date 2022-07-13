@@ -1,44 +1,41 @@
-// `include "./include/_74x138.v"
-// `include "./include/_74x157.v"
-// `include "./include/_74x182.v"
-// `include "./include/_74x381.v"
-// `include "./include/_cy7c1021.v"
-// `include "./util/_bus32.v"
-// `include "./util/_mux32.v"
-// `include "./shifter.v"
+`include "./include/_74x138.v"
+`include "./include/_74x157.v"
+`include "./include/_74x182.v"
+`include "./include/_74x381.v"
+`include "./include/_is61c256.v"
+`include "./util/_bus32.v"
+`include "./util/_mux32.v"
+`include "./shifter.v"
 
 module backend (
     input           clk,
-    input           rst,
-    input   [ 7:0]  alu_op,
-    input   [ 7:0]  mem_op,
-    input           load,
-    input           store,
+    input   [ 7:0]  alu_op,     // op: slt, sltu, sll, srl, sra, 74x381's op. ACTIVE LOW
+    input   [ 7:0]  mem_op,     // op: lb, lh, lw, lbu, lhu, sb, sh, sw. ACTIVE LOW
+    input           load,       // ACTIVE LOW
+    input           store,      // ACTIVE LOW
     input   [31:0]  qa,
     input   [31:0]  qb,
     input   [31:0]  alu_imm_1,
     input   [31:0]  alu_imm_2,
+    input           alu_src_1,  // qa or imm1. ACTIVE LOW
+    input           alu_src_2,  // qb or imm2. ACTIVE LOW
     output  [31:0]  reg_di,
-    output          is_lt,
-    output          is_ltu,
-    output          is_zero,
-    input           debug_dmem_oe,
-    input           debug_dmem_we,
-    input   [31:0]  debug_dmem_addr,
-    input   [31:0]  debug_dmem_data
+    output          is_lt,      // ACTIVE LOW
+    output          is_ltu,     // ACTIVE LOW
+    output          is_zero     // ACTIVE LOW
 );
     wire [31:0] operand_a;
     wire [31:0] operand_b;
 
     _mux32 u_mux32_0 (
-        alu_imm_1,
         qa,
+        alu_imm_1,
         alu_src_1,
         operand_a
     );
     _mux32 u_mux32_1 (
-        alu_imm_2,
         qb,
+        alu_imm_2,
         alu_src_2,
         operand_b
     );
@@ -91,8 +88,8 @@ module backend (
         pa[1]
     );
     _74x182 u_74x182_2 (
-        {2'b0, ga},
-        {2'b0, pa},
+        {2'b11, ga},
+        {2'b11, pa},
         c[0],
         c[4],
         c[8],
@@ -108,9 +105,9 @@ module backend (
         h
     );
 
-    assign is_lt   = (operand_a[31] & ~operand_b[31]) | (~operand_a[31] & ~operand_b[31] & f[31]) | (operand_a[31] & operand_b[31] & f[31]);
-    assign is_ltu  = c[8];
-    assign is_zero = ~(|f);
+    assign is_lt   = ~((operand_a[31] & ~operand_b[31]) | (~operand_a[31] & ~operand_b[31] & f[31]) | (operand_a[31] & operand_b[31] & f[31]));
+    assign is_ltu  = ~c[8];
+    assign is_zero = |f;
 
     wire slt  = alu_op[7];
     wire sltu = alu_op[6];
@@ -118,11 +115,19 @@ module backend (
     wire srl  = alu_op[4];
     wire sra  = alu_op[3];
     wire [2:0] al = alu_op[2:0];
+    wire [31:0] alu_temp;
     wire [31:0] alu_data;
 
-    _bus32 u_bus32_0 (
-        {slt|sltu,                          sll|srl|sra,   |al},
-        {{31'b0, slt&is_lt|sltu&is_ltu},    h,             f  },
+    _mux32 u_mux32_2 (
+        h,
+        f,
+        sll&srl&sra,
+        alu_temp
+    );
+    _mux32 u_mux32_3 (
+        {31'b0, (~slt&~is_lt)|(~sltu&~is_ltu)},
+        alu_temp,
+        slt&sltu,
         alu_data
     );
 
@@ -140,64 +145,69 @@ module backend (
     wire [3:0] byte_cs_dontcare;
     wire [1:0] half_cs;
     wire [5:0] half_cs_dontcare;
-    wire       word_cs = lw | sw;
+    wire       word_cs = lw&sw;
 
     _74x138 u_74x138_0 (
         {1'b0, alu_data[1:0]},
-        lb | lbh | sb,
-        1'b0,
-        1'b0,
+        1'b1,
+        lb & lbu & sb,
+        lb & lbu & sb,
         {byte_cs_dontcare, byte_cs}
     );
-
     _74x138 u_74x138_1 (
         {2'b0, alu_data[1]},
-        lh | lhu | sh,
-        1'b0,
-        1'b0,
+        1'b1,
+        lh & lhu & sh,
+        lh & lhu & sh,
         {half_cs_dontcare, half_cs}
     );
 
     wire [3:0] byte_enable;
-    assign byte_enable[0] = byte_cs[0] | half_cs[0] | word_cs;
-    assign byte_enable[1] = byte_cs[1] | half_cs[0] | word_cs;
-    assign byte_enable[2] = byte_cs[2] | half_cs[1] | word_cs;
-    assign byte_enable[3] = byte_cs[3] | half_cs[1] | word_cs;
+    assign byte_enable[0] = byte_cs[0] & half_cs[0] & word_cs;
+    assign byte_enable[1] = byte_cs[1] & half_cs[0] & word_cs;
+    assign byte_enable[2] = byte_cs[2] & half_cs[1] & word_cs;
+    assign byte_enable[3] = byte_cs[3] & half_cs[1] & word_cs;
 
-    wire dmem_oe = rst ? debug_dmem_oe : load;
-    wire dmem_we = rst ? debug_dmem_we : store;
-    wire [ 3:0] dmem_byte_enable = rst ? 'b0 : byte_enable;
-    wire [31:0] dmem_addr = rst ? debug_dmem_addr : alu_data[17:2];
-    wire [31:0] dmem_data = rst ? debug_dmem_data : store ? qb : 32'bz;
+    wire [31:0] store_byte = {qb[7:0], qb[7:0], qb[7:0], qb[7:0]};
+    wire [31:0] store_half = {qb[15:8], qb[7:0], qb[15:8], qb[7:0]};
+    wire [31:0] store_word = qb;
+    wire [31:0] store_data;
+
+    _bus32 #(3) u_bus32_1 (
+        {sb,            sh,             sw        },
+        {store_byte,    store_half,     store_word},
+        store_data
+    );
+
+    wire [31:0] dmem_data = store ? 32'bz : store_data;
 
     generate
-        for (i = 0; i < 2; i = i + 1) begin
-            _cy7c1021 u_cy7c1021 (
-                clk,
-                1'b0,
-                dmem_oe,
-                dmem_we,
-                dmem_byte_enable[i*2],
-                dmem_byte_enable[i*2+1],
-                dmem_addr[15:0],
-                dmem_data[16*i+15:16*i]
+        for (i = 0; i < 4; i = i + 1) begin
+            _is61c256 u_is61c256 (
+                ~clk,
+                load&store,
+                load|byte_enable[i],
+                store|byte_enable[i],
+                alu_data[16:2],
+                dmem_data[i*8+7:i*8]
             );
         end
     endgenerate
 
     // data bus using 74x244
-    wire [ 7:0] load_byte = byte_cs[0] ? dmem_data[7:0] : byte_cs[1] ? dmem_data[15:8] : byte_cs[2] ? dmem_data[23:16] : byte_cs[3] ? dmem_data[31:24] : 8'bz;
-    wire [15:0] load_half = half_cs[0] ? dmem_data[15:0] : half_cs[1] ? dmem_data[31:16] : 16'bz;
+    wire [ 7:0] load_byte = ~byte_cs[0] ? dmem_data[7:0] : ~byte_cs[1] ? dmem_data[15:8] : ~byte_cs[2] ? dmem_data[23:16] : ~byte_cs[3] ? dmem_data[31:24] : 8'bz;
+    wire [15:0] load_half = ~half_cs[0] ? {dmem_data[15:8], dmem_data[7:0]} : ~half_cs[1] ? {dmem_data[31:24], dmem_data[23:16]} : 16'bz;
+    wire [31:0] load_word = ~word_cs ? dmem_data : 32'bz;
 
-    _bus32 u_bus32_1 (
-        {lb|lbu,                                lh|lhu,                                         lw             },
-        {{{24{lb & load_byte[7]}}, load_byte},  {{16{lh & load_half[15]}}, load_half[15:0]},    dmem_data[31:0]},
+    _bus32 #(3) u_bus32_2 (
+        {lb&lbu,                                lh&lhu,                                         lw             },
+        {{{24{~lb & load_byte[7]}}, load_byte}, {{16{~lh & load_half[15]}}, load_half[15:0]},   load_word[31:0]},
         mem_load
     );
 
-    _mux32 u_mux32_2 (
-        alu_data,
+    _mux32 u_mux32_4 (
         mem_load,
+        alu_data,
         load,
         reg_di
     );

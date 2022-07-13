@@ -1,4 +1,4 @@
-// `include "../include/_74x157.v"
+`include "../include/_74x157.v"
 
 module _mux32(
     input [31:0] a,

@@ -27,24 +27,24 @@ module _74x381 (
 
     assign f = ft;
 
+    // for simulation
     always @(*) begin
         case (s)
-            3'b001, 3'b010, 3'b011: gt = ft >= 5'b10000;
+            3'b001, 3'b010: gt = ft >= 5'b10001;
+            3'b011: gt = ft >= 5'b10000;
             default: gt = 0;
         endcase
     end
-
     assign gn = ~gt;
 
+    // for simulation
     always @(*) begin
         case (s)
-            3'b001, 3'b010: pt = ft == 5'b00000 || ft >= 5'b10000;
+            3'b001, 3'b010: pt = ft >= 5'b10000;
             3'b011: pt = ft >= 5'b01111;
-            3'b111: pt = 1;
             default: pt = 0;
         endcase
     end
-
     assign pn = ~pt;
 
 endmodule
