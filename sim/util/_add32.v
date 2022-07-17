@@ -1,4 +1,4 @@
-`include "../include/_74x283.v"
+`include "./include/_74x283.v"
 
 module _add32(
     input [31:0] a,

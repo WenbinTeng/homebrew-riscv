@@ -1,9 +1,9 @@
 `include "./include/_74x244.v"
-`include "./include/_74x574.v"
+`include "./include/_74x377.v"
 `include "./include/_cy7c1021.v"
 `include "./util/_reg32.v"
 
-module register(
+module gpr(
     input           aclk,   // simulate async write
     input           clk,
     input           we,
@@ -41,19 +41,19 @@ module register(
         {_rb_dontcare, _rb}
     );
 
-    wire       buffer_we;
-    wire [6:0] buffer_we_dontcare;
+    wire        buffer_we;
+    wire [30:0] buffer_we_dontcare;
 
-    _74x574 u_74x574 (
+    _reg32 u_reg32_0 (
         1'b0,
         ~clk,
-        {7'b0, we},
+        {31'b0, we},
         {buffer_we_dontcare, buffer_we}
     );
     
     wire [31:0] buffer_di;
 
-    _reg32 u_reg32 (
+    _reg32 u_reg32_1 (
         1'b0,
         ~clk,
         di,

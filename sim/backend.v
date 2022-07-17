@@ -11,15 +11,19 @@ module backend (
     input           clk,
     input   [ 7:0]  alu_op,     // op: slt, sltu, sll, srl, sra, 74x381's op. ACTIVE LOW
     input   [ 7:0]  mem_op,     // op: lb, lh, lw, lbu, lhu, sb, sh, sw. ACTIVE LOW
+    input   [ 8:0]  csr_op,      // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, csrrwi, cssrrsi, csrrci. ACTIVE LOW
     input           load,       // ACTIVE LOW
     input           store,      // ACTIVE LOW
     input   [31:0]  qa,
     input   [31:0]  qb,
+    output  [31:0]  gpr_di,
     input   [31:0]  alu_imm_1,
     input   [31:0]  alu_imm_2,
     input           alu_src_1,  // qa or imm1. ACTIVE LOW
     input           alu_src_2,  // qb or imm2. ACTIVE LOW
-    output  [31:0]  reg_di,
+    input   [ 4:0]  csr_zimm,
+    input   [31:0]  csr_rdata,
+    output  [31:0]  csr_wdata,
     output          is_lt,      // ACTIVE LOW
     output          is_ltu,     // ACTIVE LOW
     output          is_zero     // ACTIVE LOW
@@ -205,11 +209,27 @@ module backend (
         mem_load
     );
 
+    wire [31:0] gpr_di_temp;
+
     _mux32 u_mux32_4 (
         mem_load,
         alu_data,
         load,
-        reg_di
+        gpr_di_temp
+    );
+
+    _mux32 u_mux32_5 (
+        csr_rdata,
+        gpr_di_temp,
+        &csr_op[5:0],
+        gpr_di
+    );
+
+    _mux32 u_mux32_6 (
+        {27'b0, csr_zimm},
+        qa,
+        &csr_op[2:0],
+        csr_wdata
     );
     
 endmodule

@@ -7,13 +7,16 @@ module IF (
     input           clk,
     input           rst,
     input   [31:0]  rst_addr,
-    input           brh,
+    input           brh_flag,
     input   [31:0]  brh_addr,
+    input           int_flag,
+    input   [31:0]  int_addr,
     output  [31:0]  pc,
     output  [31:0]  inst
 );
 
-    wire [31:0] temp_pc;
+    wire [31:0] temp_pc_0;
+    wire [31:0] temp_pc_1;
     wire [31:0] curr_pc;
     wire [31:0] next_pc;
     wire [31:0] plus_pc;
@@ -21,13 +24,20 @@ module IF (
     _mux32 u_mux32_0 (
         brh_addr,
         plus_pc,
-        brh,
-        temp_pc
+        brh_flag,
+        temp_pc_0
     );
 
     _mux32 u_mux32_1 (
+        int_addr,
+        temp_pc_0,
+        int_flag,
+        temp_pc_1
+    );
+
+    _mux32 u_mux32_2 (
         rst_addr,
-        temp_pc,
+        temp_pc_1,
         rst,
         next_pc
     );
