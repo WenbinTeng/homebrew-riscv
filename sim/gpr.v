@@ -1,7 +1,7 @@
-`include "./include/_74x244.v"
-`include "./include/_74x377.v"
-`include "./include/_cy7c1021.v"
-`include "./util/_reg32.v"
+// `include "./include/_74x245.v"
+// `include "./include/_74x377.v"
+// `include "./include/_cy7c1021.v"
+// `include "./util/_reg32.v"
 
 module gpr(
     input           aclk,   // simulate async write
@@ -20,23 +20,23 @@ module gpr(
     wire [4:0] _rb;
     wire [2:0] _rb_dontcare;
 
-    _74x244 u_74x244_a0 (
-        {~clk, ~clk},
+    _74x245 u_74x245_a0 (
+        ~clk,
         {3'b0, ra},
         {_ra_dontcare, _ra}
     );
-    _74x244 u_74x244_a1 (
-        {clk, clk},
+    _74x245 u_74x245_a1 (
+        clk,
         {3'b0, rd},
         {_ra_dontcare, _ra}
     );
-    _74x244 u_74x244_b0 (
-        {~clk, ~clk},
+    _74x245 u_74x245_b0 (
+        ~clk,
         {3'b0, rb},
         {_rb_dontcare, _rb}
     );
-    _74x244 u_74x244_b1 (
-        {clk, clk},
+    _74x245 u_74x245_b1 (
+        clk,
         {3'b0, rd},
         {_rb_dontcare, _rb}
     );

@@ -1,5 +1,5 @@
-`include "./util/_bus32.v"
-`include "./util/_reg32.v"
+// `include "./util/_bus32.v"
+// `include "./util/_reg32.v"
 
 module csr (
     input   aclk,
@@ -7,7 +7,7 @@ module csr (
     input   [31:0] pc,
     input   ei,                 // external interrupt, ACTIVE LOW
     input   ti,                 // timer interrupt, ACTIVE LOW
-    input   [ 8:0] csr_op,      // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, csrrwi, cssrrsi, csrrci. ACTIVE LOW
+    input   [ 6:0] csr_op,      // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, csrrwi, cssrrsi, csrrci. ACTIVE LOW
     input   [11:0] csr_addr,    
     input   [31:0] wdata,
     output  [31:0] rdata,
@@ -24,17 +24,15 @@ module csr (
     wire [31:0] mscratch;
     wire [31:0] mstatus;
 
-    wire ecall  = csr_op[8];
-    wire ebreak = csr_op[7];
-    wire mret   = csr_op[6];
-    wire csrrw  = csr_op[5];
-    wire csrrs  = csr_op[4];
-    wire csrrc  = csr_op[3];
-    wire csrrwi = csr_op[2];
-    wire csrrsi = csr_op[1];
-    wire csrrci = csr_op[0];
+    wire ecall  = csr_op[6];
+    wire ebreak = csr_op[5];
+    wire mret   = csr_op[4];
+    wire csrrw  = csr_op[3];
+    wire csrrs  = csr_op[2];
+    wire csrrc  = csr_op[1];
+    wire is_imm = csr_op[0];
     wire si = ecall&ebreak;
-    wire we = csrrw&csrrwi&csrrs&csrrsi&csrrc&csrrci;
+    wire we = csrrw&csrrs&csrrc;
     wire        _int_handle = ((ei|~mie[11]) & (ti|~mie[7]) & (si|~mie[3])) | ~mstatus[3];
     wire        _int_flag = _int_handle & mret;
     wire [30:0] _int_flag_dontcare;
@@ -44,8 +42,8 @@ module csr (
     wire [31:0] dout;
 
     _bus32 #(3) u_bus32_0 (
-        {csrrw&csrrwi, csrrs&csrrsi, csrrc&csrrci},
-        {wdata,        dout|wdata,    dout&wdata  },
+        {csrrw,     csrrs,          csrrc       },
+        {wdata,     dout|wdata,     dout&wdata  },
         din
     );
 

@@ -1,17 +1,17 @@
-`include "./include/_74x138.v"
-`include "./include/_74x157.v"
-`include "./include/_74x182.v"
-`include "./include/_74x381.v"
-`include "./include/_is61c256.v"
-`include "./util/_bus32.v"
-`include "./util/_mux32.v"
-`include "./shifter.v"
+// `include "./include/_74x138.v"
+// `include "./include/_74x157.v"
+// `include "./include/_74x182.v"
+// `include "./include/_74x381.v"
+// `include "./include/_is61c256.v"
+// `include "./util/_bus32.v"
+// `include "./util/_mux32.v"
+// `include "./shifter.v"
 
 module backend (
     input           clk,
     input   [ 7:0]  alu_op,     // op: slt, sltu, sll, srl, sra, 74x381's op. ACTIVE LOW
     input   [ 7:0]  mem_op,     // op: lb, lh, lw, lbu, lhu, sb, sh, sw. ACTIVE LOW
-    input   [ 8:0]  csr_op,      // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, csrrwi, cssrrsi, csrrci. ACTIVE LOW
+    input   [ 6:0]  csr_op,      // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, csrrwi, cssrrsi, csrrci. ACTIVE LOW
     input           load,       // ACTIVE LOW
     input           store,      // ACTIVE LOW
     input   [31:0]  qa,
@@ -198,7 +198,7 @@ module backend (
         end
     endgenerate
 
-    // data bus using 74x244
+    // data bus using 74x245
     wire [ 7:0] load_byte = ~byte_cs[0] ? dmem_data[7:0] : ~byte_cs[1] ? dmem_data[15:8] : ~byte_cs[2] ? dmem_data[23:16] : ~byte_cs[3] ? dmem_data[31:24] : 8'bz;
     wire [15:0] load_half = ~half_cs[0] ? {dmem_data[15:8], dmem_data[7:0]} : ~half_cs[1] ? {dmem_data[31:24], dmem_data[23:16]} : 16'bz;
     wire [31:0] load_word = ~word_cs ? dmem_data : 32'bz;
@@ -221,14 +221,14 @@ module backend (
     _mux32 u_mux32_5 (
         csr_rdata,
         gpr_di_temp,
-        &csr_op[5:0],
+        &csr_op[3:1],
         gpr_di
     );
 
     _mux32 u_mux32_6 (
         {27'b0, csr_zimm},
         qa,
-        &csr_op[2:0],
+        csr_op[0],
         csr_wdata
     );
     

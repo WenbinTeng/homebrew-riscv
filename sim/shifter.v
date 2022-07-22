@@ -1,4 +1,4 @@
-`include "./util/_mux32.v"
+// `include "./util/_mux32.v"
 
 module shifter (
     input   [31:0]  operand_a,

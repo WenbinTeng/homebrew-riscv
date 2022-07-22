@@ -1,9 +1,9 @@
-`include "./IF.v"
-`include "./ID.v"
-`include "./gpr.v"
-`include "./csr.v"
-`include "./shifter.v"
-`include "./backend.v"
+// `include "./IF.v"
+// `include "./ID.v"
+// `include "./gpr.v"
+// `include "./csr.v"
+// `include "./shifter.v"
+// `include "./backend.v"
 
 module top (
     input           aclk,
@@ -15,6 +15,7 @@ module top (
     
     wire    [31:0]  pc;
     wire    [31:0]  inst;
+    wire    [31:0]  inst_enable;
     wire            brh_flag;
     wire    [31:0]  brh_addr;
     wire            int_flag;
@@ -30,7 +31,7 @@ module top (
     wire    [31:0]  alu_imm_2;
     wire    [ 7:0]  alu_op;
     wire    [ 7:0]  mem_op;
-    wire    [ 8:0]  csr_op;
+    wire    [ 6:0]  csr_op;
     wire            gpr_we;
     wire    [31:0]  gpr_di;
     wire            load;
@@ -40,9 +41,9 @@ module top (
     wire    [31:0]  csr_wdata;
     wire    [31:0]  csr_rdata;
 
-    IF u_IF (clk, rst, 32'h0, brh_flag, brh_addr, int_flag, int_addr, pc, inst);
+    IF u_IF (clk, rst, 32'h0, int_flag, int_addr, qa, is_lt, is_ltu, is_zero, pc, inst, inst_enable);
 
-    ID u_ID (clk, rst, pc, inst, qa, is_lt, is_ltu, is_zero, brh_flag, brh_addr, alu_src_1, alu_src_2, alu_imm_1, alu_imm_2, alu_op, mem_op, csr_op, csr_addr, csr_zimm, gpr_we, load, store);
+    ID u_ID (clk, rst, pc, inst, inst_enable, alu_src_1, alu_src_2, alu_imm_1, alu_imm_2, alu_op, mem_op, csr_op, csr_addr, csr_zimm, gpr_we, load, store);
 
     gpr u_gpr (aclk, clk, gpr_we, inst[19:15], inst[24:20], inst[11:7], gpr_di, qa, qb);
 

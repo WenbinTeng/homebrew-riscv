@@ -1,42 +1,30 @@
-`include "./include/_74x138.v"
-`include "./include/_74x377.v"
-`include "./util/_add32.v"
-`include "./util/_bus32.v"
-`include "./util/_dec32.v"
-`include "./util/_mux32.v"
-`include "./util/_reg32.v"
+// `include "./include/_74x138.v"
+// `include "./include/_74x377.v"
+// `include "./util/_add32.v"
+// `include "./util/_bus32.v"
+// `include "./util/_dec32.v"
+// `include "./util/_mux32.v"
+// `include "./util/_reg32.v"
 
 module ID (
     input           clk,
     input           rst,        // ACTIVE LOW
     input   [31:0]  pc,
     input   [31:0]  inst,
-    input   [31:0]  qa,
-    input           is_lt,      // ACTIVE LOW
-    input           is_ltu,     // ACTIVE LOW
-    input           is_zero,    // ACTIVE LOW
-    output          brh_flag,   // branch flag. ACTIVE LOW
-    output  [31:0]  brh_addr,   // branch addr
-    output          alu_src_1,  // qa or imm1. ACTIVE LOW
-    output          alu_src_2,  // qb or imm2. ACTIVE LOW
-    output  [31:0]  alu_imm_1,  // imm1
-    output  [31:0]  alu_imm_2,  // imm2
+    input   [31:0]  inst_enable,
+    output          alu_src_1,
+    output          alu_src_2,
+    output  [31:0]  alu_imm_1,
+    output  [31:0]  alu_imm_2,
     output  [ 7:0]  alu_op,     // op: slt, sltu, sll, srl, sra, 74x381's op. ACTIVE LOW
     output  [ 7:0]  mem_op,     // op: lb, lh, lw, lbu, lhu, sb, sh, sw. ACTIVE LOW
-    output  [ 8:0]  csr_op,     // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, csrrwi, cssrrsi, csrrci. ACTIVE LOW
+    output  [ 6:0]  csr_op,     // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, is_imm. ACTIVE LOW
     output  [11:0]  csr_addr,
     output  [ 4:0]  csr_zimm,
     output          gpr_we,     // ACTIVE LOW
     output          load,       // ACTIVE LOW
     output          store       // ACTIVE LOW
 );
-
-    wire [31:0] inst_enable; // ACTIVE **LOW**
-
-    _dec32 u_dec32 (
-        inst[6:2],
-        inst_enable
-    );
 
     wire lui        = inst_enable[13];
     wire auipc      = inst_enable[ 5];
@@ -50,11 +38,10 @@ module ID (
     wire csr        = inst_enable[28];
 
     wire [31:0] u_type_imm = {inst[31:12], 12'b0};
-    wire [31:0] j_type_imm = {{11{inst[31]}}, inst[31], inst[19:12], inst[20], inst[30:21], 1'b0};
-    wire [31:0] b_type_imm = {{19{inst[31]}}, inst[31], inst[7], inst[30:25], inst[11:8], 1'b0};
     wire [31:0] i_type_imm = {{20{inst[31]}}, inst[31:20]};
     wire [31:0] s_type_imm = {{20{inst[31]}}, inst[31:25], inst[11:7]};
-    reg [7:0] alu_op_rom [255:0];
+
+    reg  [7:0] alu_op_rom [255:0];
     wire [7:0] _alu_op = alu_op_rom[{lui&auipc&jal&jalr&load&store, branch, immediate, register, inst[30], inst[14:12]}];
 
     wire [7:0] load_enable;
@@ -78,7 +65,7 @@ module ID (
 
     wire [7:0] csr_enable;
     wire [7:0] csr_funct;
-    wire [8:0] _csr_op = {csr_funct[0], csr_funct[1], csr_funct[2], csr_enable[1], csr_enable[2], csr_enable[3], csr_enable[5], csr_enable[6], csr_enable[7]};
+    wire [6:0] _csr_op = {csr_funct[0], csr_funct[1], csr_funct[2], csr_enable[1]&csr_enable[5], csr_enable[2]&csr_enable[6], csr_enable[3]&csr_enable[7], ~inst[14]};
 
     _74x138 u_74x138_2 (
         inst[14:12],
@@ -98,20 +85,20 @@ module ID (
     assign csr_addr = inst[31:20];
     assign csr_zimm = inst[19:15];
 
-    wire [6:0] op_dontcare;
+    wire [8:0] op_dontcare;
 
     _mux32 u_mux32_0 (
-        {7'b0, 8'b11111000, 8'b11111111, 9'b111111111},
-        {7'b0, _alu_op,     _mem_op,     _csr_op     },
+        {9'b0,  8'b11111000,    8'b11111111,    7'b1111111},
+        {9'b0,  _alu_op,        _mem_op,        _csr_op   },
         rst,
         {op_dontcare, alu_op, mem_op, csr_op}
     );
 
     wire [31:0] imm;
 
-    _bus32 #(5) _bus32_0 (
-        {lui&auipc,     jal,            jalr&load&immediate,    branch,         store     },
-        {u_type_imm,    j_type_imm,     i_type_imm,             b_type_imm,     s_type_imm},
+    _bus32 #(3) _bus32_0 (
+        {lui&auipc,     load&immediate,     store     },
+        {u_type_imm,    i_type_imm,         s_type_imm},
         imm
     );
 
@@ -131,57 +118,7 @@ module ID (
         alu_imm_2
     );
 
-    assign gpr_we = lui&auipc&jal&jalr&load&immediate&register&(&csr_op[5:0])|(~rst)|(~|inst[11:7]);
-
-    wire [7:0] branch_enable;
-
-    _74x138 u_74x138_4 (
-        inst[14:12],
-        1'b1,
-        branch,
-        branch,
-        branch_enable
-    );
-
-    wire brh = jal & jalr &
-                    (branch_enable[0] |  is_zero) &  // beq
-                    (branch_enable[1] | ~is_zero) &  // bne
-                    (branch_enable[4] |  is_lt)   &  // blt
-                    (branch_enable[5] | ~is_lt)   &  // bge
-                    (branch_enable[6] |  is_ltu)  &  // bltu
-                    (branch_enable[7] | ~is_ltu)  &  // bgeu
-                    1;
-    wire [30:0] brh_dontcare;
-
-    wire [31:0] brh_base;
-    wire [31:0] brh_temp;
-
-    _mux32 u_mux32_3 (
-        qa,
-        pc,
-        jalr,
-        brh_base
-    );
-
-    _add32 u_add32 (
-        brh_base,
-        imm,
-        brh_temp
-    );
-
-    _reg32 u_reg32_0 (
-        1'b0,
-        ~clk,
-        {brh_temp[31:1], 1'b0},
-        brh_addr
-    );
-
-    _reg32 u_reg32_1 (
-        1'b0,
-        ~clk,
-        {31'b0, brh},
-        {brh_dontcare, brh_flag}
-    );
+    assign gpr_we = lui&auipc&jal&jalr&load&immediate&register&(&csr_op[3:1])|(~rst)|(~|inst[11:7]);
 
     integer i;
     initial begin
