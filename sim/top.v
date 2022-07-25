@@ -43,7 +43,7 @@ module top (
 
     IF u_IF (clk, rst, 32'h0, int_flag, int_addr, qa, is_lt, is_ltu, is_zero, pc, inst, inst_enable);
 
-    ID u_ID (clk, rst, pc, inst, inst_enable, alu_src_1, alu_src_2, alu_imm_1, alu_imm_2, alu_op, mem_op, csr_op, csr_addr, csr_zimm, gpr_we, load, store);
+    ID u_ID (rst, pc, inst, inst_enable, alu_src_1, alu_src_2, alu_imm_1, alu_imm_2, alu_op, mem_op, csr_op, csr_addr, csr_zimm, gpr_we, load, store);
 
     gpr u_gpr (aclk, clk, gpr_we, inst[19:15], inst[24:20], inst[11:7], gpr_di, qa, qb);
 

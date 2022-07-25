@@ -7,7 +7,6 @@
 // `include "./util/_reg32.v"
 
 module ID (
-    input           clk,
     input           rst,        // ACTIVE LOW
     input   [31:0]  pc,
     input   [31:0]  inst,
