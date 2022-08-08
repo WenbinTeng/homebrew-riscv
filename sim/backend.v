@@ -1,11 +1,11 @@
-// `include "./include/_74x138.v"
-// `include "./include/_74x157.v"
-// `include "./include/_74x182.v"
-// `include "./include/_74x381.v"
-// `include "./include/_is61c256.v"
-// `include "./util/_bus32.v"
-// `include "./util/_mux32.v"
-// `include "./shifter.v"
+`include "./include/_74x138.v"
+`include "./include/_74x157.v"
+`include "./include/_74x182.v"
+`include "./include/_74x381.v"
+`include "./include/_is61c256.v"
+`include "./util/_bus32.v"
+`include "./util/_mux32.v"
+`include "./shifter.v"
 
 module backend (
     input           clk,

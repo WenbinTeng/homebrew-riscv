@@ -1,10 +1,10 @@
-// `include "./include/_74x138.v"
-// `include "./include/_74x377.v"
-// `include "./util/_add32.v"
-// `include "./util/_bus32.v"
-// `include "./util/_dec32.v"
-// `include "./util/_mux32.v"
-// `include "./util/_reg32.v"
+`include "./include/_74x138.v"
+`include "./include/_74x377.v"
+`include "./util/_add32.v"
+`include "./util/_bus32.v"
+`include "./util/_dec32.v"
+`include "./util/_mux32.v"
+`include "./util/_reg32.v"
 
 module ID (
     input           rst,        // ACTIVE LOW

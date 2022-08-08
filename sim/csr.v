@@ -1,5 +1,5 @@
-// `include "./util/_bus32.v"
-// `include "./util/_reg32.v"
+`include "./util/_bus32.v"
+`include "./util/_reg32.v"
 
 module csr (
     input   aclk,
@@ -7,7 +7,7 @@ module csr (
     input   [31:0] pc,
     input   ei,                 // external interrupt, ACTIVE LOW
     input   ti,                 // timer interrupt, ACTIVE LOW
-    input   [ 6:0] csr_op,      // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, csrrwi, cssrrsi, csrrci. ACTIVE LOW
+    input   [ 6:0] csr_op,      // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, is_imm. ACTIVE LOW
     input   [11:0] csr_addr,    
     input   [31:0] wdata,
     output  [31:0] rdata,
