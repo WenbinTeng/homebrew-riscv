@@ -1,17 +1,16 @@
-`include "./include/_74x138.v"
-`include "./include/_74x157.v"
-`include "./include/_74x182.v"
-`include "./include/_74x381.v"
-`include "./include/_is61c256.v"
-`include "./util/_bus32.v"
-`include "./util/_mux32.v"
-`include "./shifter.v"
+// `include "./include/_74x138.v"
+// `include "./include/_74x157.v"
+// `include "./include/_74x182.v"
+// `include "./include/_74x381.v"
+// `include "./include/_is61c256.v"
+// `include "./util/_bus32.v"
+// `include "./util/_mux32.v"
+// `include "./shifter.v"
 
 module backend (
     input           clk,
     input   [ 7:0]  alu_op,     // op: slt, sltu, sll, srl, sra, 74x381's op. ACTIVE LOW
     input   [ 7:0]  mem_op,     // op: lb, lh, lw, lbu, lhu, sb, sh, sw. ACTIVE LOW
-    input   [ 6:0]  csr_op,      // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, csrrwi, cssrrsi, csrrci. ACTIVE LOW
     input           load,       // ACTIVE LOW
     input           store,      // ACTIVE LOW
     input   [31:0]  qa,
@@ -21,9 +20,6 @@ module backend (
     input   [31:0]  alu_imm_2,
     input           alu_src_1,  // qa or imm1. ACTIVE LOW
     input           alu_src_2,  // qb or imm2. ACTIVE LOW
-    input   [ 4:0]  csr_zimm,
-    input   [31:0]  csr_rdata,
-    output  [31:0]  csr_wdata,
     output          is_lt,      // ACTIVE LOW
     output          is_ltu,     // ACTIVE LOW
     output          is_zero     // ACTIVE LOW
@@ -209,27 +205,10 @@ module backend (
         mem_load
     );
 
-    wire [31:0] gpr_di_temp;
-
-    _mux32 u_mux32_4 (
-        mem_load,
-        alu_data,
-        load,
-        gpr_di_temp
-    );
-
-    _mux32 u_mux32_5 (
-        csr_rdata,
-        gpr_di_temp,
-        &csr_op[3:1],
+    _bus32 #(2) u_bus32_3 (
+        {~(|alu_op[2:0]),   load    },
+        {alu_data,          mem_load},
         gpr_di
-    );
-
-    _mux32 u_mux32_6 (
-        {27'b0, csr_zimm},
-        qa,
-        csr_op[0],
-        csr_wdata
     );
     
 endmodule

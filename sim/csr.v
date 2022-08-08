@@ -1,16 +1,17 @@
-`include "./util/_bus32.v"
-`include "./util/_reg32.v"
+// `include "./util/_bus32.v"
+// `include "./util/_reg32.v"
 
 module csr (
     input   aclk,
     input   clk,
     input   [31:0] pc,
+    input   [31:0] qa,
     input   ei,                 // external interrupt, ACTIVE LOW
     input   ti,                 // timer interrupt, ACTIVE LOW
     input   [ 6:0] csr_op,      // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, is_imm. ACTIVE LOW
-    input   [11:0] csr_addr,    
-    input   [31:0] wdata,
-    output  [31:0] rdata,
+    input   [ 4:0] csr_zimm,
+    input   [11:0] csr_addr,
+    output  [31:0] csr_rdata,
     output         int_flag,
     output  [31:0] int_addr
 );
@@ -31,15 +32,34 @@ module csr (
     wire csrrs  = csr_op[2];
     wire csrrc  = csr_op[1];
     wire is_imm = csr_op[0];
-    wire si = ecall&ebreak;
-    wire we = csrrw&csrrs&csrrc;
-    wire        _int_handle = ((ei|~mie[11]) & (ti|~mie[7]) & (si|~mie[3])) | ~mstatus[3];
-    wire        _int_flag = _int_handle & mret;
-    wire [30:0] _int_flag_dontcare;
-    wire [31:0] _int_addr = ~mret ? mepc : mtvec;
 
+    wire csr_en = csrrw&csrrs&csrrc;
+    wire ecall_en = ~(~ecall&mie[3]&mstatus[3]);
+    wire ebreak_en = ~(~ebreak&mie[3]&mstatus[3]);
+    wire ei_en = ~(mip[11]&mie[11]);
+    wire ti_en = ~(mip[7]&mie[7]);
+
+    wire        _int_flag = ecall_en & ebreak_en & ei_en & ti_en & mret;
+    wire [30:0] _int_flag_dontcare;
+    wire [31:0] _int_addr;
+
+    wire [31:0] wdata;
     wire [31:0] din;
     wire [31:0] dout;
+
+    _mux32 u_mux32_0 (
+        {27'b0, csr_zimm},
+        qa,
+        is_imm,
+        wdata
+    );
+
+    _mux32 u_mux32_1 (
+        mepc,
+        mtvec,
+        mret,
+        _int_addr
+    );
 
     _bus32 #(3) u_bus32_0 (
         {csrrw,     csrrs,          csrrc       },
@@ -62,7 +82,7 @@ module csr (
     _reg32 mcause_reg (
         _int_handle,
         ~aclk,
-        ~ecall&mie[3] ? 32'hb : ~ebreak&mie[3] ? 32'h3 : ~ti&mie[7] ? 32'h80000007 : ~ei&mie[11] ? 32'h8000000b : 32'ha,
+        ~ecall_en ? 32'hb : ~ebreak_en ? 32'h3 : ~ti_en ? 32'h80000007 : ~ei_en ? 32'h8000000b : 32'ha,
         mcause
     );
     _reg32 mie_reg (
@@ -98,14 +118,14 @@ module csr (
 
     _bus32 #(8) u_bus32_1 (
         {
-            ~(csr_addr==12'h305),
-            ~(csr_addr==12'h341),
-            ~(csr_addr==12'h342),
-            ~(csr_addr==12'h304),
-            ~(csr_addr==12'h344),
-            ~(csr_addr==12'h343),
-            ~(csr_addr==12'h340),
-            ~(csr_addr==12'h300)
+            ~(csr_addr==12'h305&~csr_en),
+            ~(csr_addr==12'h341&~csr_en),
+            ~(csr_addr==12'h342&~csr_en),
+            ~(csr_addr==12'h304&~csr_en),
+            ~(csr_addr==12'h344&~csr_en),
+            ~(csr_addr==12'h343&~csr_en),
+            ~(csr_addr==12'h340&~csr_en),
+            ~(csr_addr==12'h300&~csr_en)
         },
         {
             mtvec,
@@ -120,7 +140,7 @@ module csr (
         dout
     );
 
-    assign rdata = dout;
+    assign csr_rdata = dout;
 
     _reg32 u_reg32_1 (
         1'b0,

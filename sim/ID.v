@@ -1,10 +1,10 @@
-`include "./include/_74x138.v"
-`include "./include/_74x377.v"
-`include "./util/_add32.v"
-`include "./util/_bus32.v"
-`include "./util/_dec32.v"
-`include "./util/_mux32.v"
-`include "./util/_reg32.v"
+// `include "./include/_74x138.v"
+// `include "./include/_74x377.v"
+// `include "./util/_add32.v"
+// `include "./util/_bus32.v"
+// `include "./util/_dec32.v"
+// `include "./util/_mux32.v"
+// `include "./util/_reg32.v"
 
 module ID (
     input           rst,        // ACTIVE LOW
@@ -18,8 +18,6 @@ module ID (
     output  [ 7:0]  alu_op,     // op: slt, sltu, sll, srl, sra, 74x381's op. ACTIVE LOW
     output  [ 7:0]  mem_op,     // op: lb, lh, lw, lbu, lhu, sb, sh, sw. ACTIVE LOW
     output  [ 6:0]  csr_op,     // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, is_imm. ACTIVE LOW
-    output  [11:0]  csr_addr,
-    output  [ 4:0]  csr_zimm,
     output          gpr_we,     // ACTIVE LOW
     output          load,       // ACTIVE LOW
     output          store       // ACTIVE LOW
@@ -95,7 +93,7 @@ module ID (
 
     wire [31:0] imm;
 
-    _bus32 #(3) _bus32_0 (
+    _bus32 #(3) u_bus32_0 (
         {lui&auipc,     load&immediate,     store     },
         {u_type_imm,    i_type_imm,         s_type_imm},
         imm

@@ -1,9 +1,9 @@
-`include "./util/_add32.v"
-`include "./util/_bus32.v"
-`include "./util/_dec32.v"
-`include "./util/_reg32.v"
-`include "./include/_74x138.v"
-`include "./include/_at28c256.v"
+// `include "./util/_add32.v"
+// `include "./util/_bus32.v"
+// `include "./util/_dec32.v"
+// `include "./util/_reg32.v"
+// `include "./include/_74x138.v"
+// `include "./include/_at28c256.v"
 
 module IF (
     input           clk,
