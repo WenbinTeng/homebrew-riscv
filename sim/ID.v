@@ -4,7 +4,6 @@
 // `include "./util/_bus32.v"
 // `include "./util/_dec32.v"
 // `include "./util/_mux32.v"
-// `include "./util/_reg32.v"
 
 module ID (
     input           rst,        // ACTIVE LOW
@@ -17,7 +16,7 @@ module ID (
     output  [31:0]  alu_imm_2,
     output  [ 7:0]  alu_op,     // op: slt, sltu, sll, srl, sra, 74x381's op. ACTIVE LOW
     output  [ 7:0]  mem_op,     // op: lb, lh, lw, lbu, lhu, sb, sh, sw. ACTIVE LOW
-    output  [ 6:0]  csr_op,     // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, is_imm. ACTIVE LOW
+    output  [ 7:0]  csr_op,     // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, is_imm. ACTIVE LOW
     output          gpr_we,     // ACTIVE LOW
     output          load,       // ACTIVE LOW
     output          store       // ACTIVE LOW
@@ -62,7 +61,7 @@ module ID (
 
     wire [7:0] csr_enable;
     wire [7:0] csr_funct;
-    wire [6:0] _csr_op = {csr_funct[0], csr_funct[1], csr_funct[2], csr_enable[1]&csr_enable[5], csr_enable[2]&csr_enable[6], csr_enable[3]&csr_enable[7], ~inst[14]};
+    wire [7:0] _csr_op = {1'b0, csr_funct[0], csr_funct[1], csr_funct[2], csr_enable[1]&csr_enable[5], csr_enable[2]&csr_enable[6], csr_enable[3]&csr_enable[7], ~inst[14]};
 
     _74x138 u_74x138_2 (
         inst[14:12],
@@ -78,9 +77,6 @@ module ID (
         csr_enable[0],
         csr_funct
     );
-
-    assign csr_addr = inst[31:20];
-    assign csr_zimm = inst[19:15];
 
     wire [8:0] op_dontcare;
 

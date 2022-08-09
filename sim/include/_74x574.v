@@ -1,5 +1,5 @@
-module _74x377 (
-    input g,        // Clock Enable (Active LOW)
+module _74x574 (
+    input oe,       // Output Enable (Active LOW)
     input clk,      // Clock Signal
     input [7:0] d,  // Input Data
     output [7:0] q  // Output Data
@@ -8,11 +8,9 @@ module _74x377 (
     reg [7:0] r;
 
     always @(posedge clk) begin
-        if (!g) begin
-            r <= d;
-        end
+        r <= d;
     end
 
-    assign q = r;
+    assign q = oe ? 8'bz : r;
     
 endmodule

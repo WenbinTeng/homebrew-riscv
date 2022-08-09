@@ -31,7 +31,7 @@ module top (
     wire    [31:0]  alu_imm_2;
     wire    [ 7:0]  alu_op;
     wire    [ 7:0]  mem_op;
-    wire    [ 6:0]  csr_op;
+    wire    [ 7:0]  csr_op;
     wire            gpr_we;
     wire    [31:0]  gpr_di;
     wire            load;

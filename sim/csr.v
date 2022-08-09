@@ -8,7 +8,7 @@ module csr (
     input   [31:0] qa,
     input   ei,                 // external interrupt, ACTIVE LOW
     input   ti,                 // timer interrupt, ACTIVE LOW
-    input   [ 6:0] csr_op,      // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, is_imm. ACTIVE LOW
+    input   [ 7:0] csr_op,      // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, is_imm. ACTIVE LOW
     input   [ 4:0] csr_zimm,
     input   [11:0] csr_addr,
     output  [31:0] csr_rdata,
@@ -21,8 +21,6 @@ module csr (
     wire [31:0] mcause;
     wire [31:0] mie;
     wire [31:0] mip;
-    wire [31:0] mtval;
-    wire [31:0] mscratch;
     wire [31:0] mstatus;
 
     wire ecall  = csr_op[6];
@@ -39,7 +37,8 @@ module csr (
     wire ei_en = ~(mip[11]&mie[11]);
     wire ti_en = ~(mip[7]&mie[7]);
 
-    wire        _int_flag = ecall_en & ebreak_en & ei_en & ti_en & mret;
+    wire        _int_handle = ecall_en & ebreak_en & ei_en & ti_en;
+    wire        _int_flag = _int_handle & mret;
     wire [30:0] _int_flag_dontcare;
     wire [31:0] _int_addr;
 
@@ -68,26 +67,26 @@ module csr (
     );
 
     _reg32 mtvec_reg (
-        ~(csr_addr==12'h305&~we),
-        ~aclk,
+        1'b0,
+        ~aclk&(~csr_en&csr_addr==12'h305),
         din,
         mtvec
     );
     _reg32 mepc_reg (
-        ~(csr_addr==12'h341&~we)&_int_handle,
-        ~aclk,
+        1'b0,
+        ~aclk&(~csr_en&csr_addr==12'h341|~_int_handle),
         ~_int_handle ? {pc[31:2], 2'b0} : {din[31:2], 2'b0},
         mepc
     );
     _reg32 mcause_reg (
-        _int_handle,
-        ~aclk,
+        1'b0,
+        ~aclk&~_int_handle,
         ~ecall_en ? 32'hb : ~ebreak_en ? 32'h3 : ~ti_en ? 32'h80000007 : ~ei_en ? 32'h8000000b : 32'ha,
         mcause
     );
     _reg32 mie_reg (
-        ~(csr_addr==12'h304&~we),
-        ~aclk,
+        1'b0,
+        ~aclk&(~csr_en&csr_addr==12'h304),
         {20'b0, din[11], 3'b0, din[7], 3'b0, din[3], 3'b0},
         mie
     );
@@ -97,35 +96,21 @@ module csr (
         {20'b0, ~ei, 3'b0, ~ti, 3'b0, 1'b0, 3'b0},
         mip
     );
-    _reg32 mtval_reg (
-        ~(csr_addr==12'h343&~we),
-        ~aclk,
-        din,
-        mtval
-    );
-    _reg32 mscratch_reg (
-        ~(csr_addr==12'h340&~we),
-        ~aclk,
-        din,
-        mscratch
-    );
     _reg32 mstatus_reg (
-        ~(csr_addr==12'h300&~we)&_int_flag,
-        ~aclk,
+        1'b0,
+        ~aclk&(~csr_en&csr_addr==12'h300|~_int_flag),
         ~_int_handle ? {19'b0, 2'b11, 3'b0, 1'b1, 3'b0, 1'b0, 3'b0} : ~mret ? {19'b0, 2'b11, 3'b0, 1'b1, 3'b0, 1'b1, 3'b0} : {19'b0, 2'b11, 3'b0, 1'b1, 3'b0, din[3], 3'b0},
         mstatus
     );
 
-    _bus32 #(8) u_bus32_1 (
+    _bus32 #(6) u_bus32_1 (
         {
-            ~(csr_addr==12'h305&~csr_en),
-            ~(csr_addr==12'h341&~csr_en),
-            ~(csr_addr==12'h342&~csr_en),
-            ~(csr_addr==12'h304&~csr_en),
-            ~(csr_addr==12'h344&~csr_en),
-            ~(csr_addr==12'h343&~csr_en),
-            ~(csr_addr==12'h340&~csr_en),
-            ~(csr_addr==12'h300&~csr_en)
+            ~(~csr_en&csr_addr==12'h305),
+            ~(~csr_en&csr_addr==12'h341),
+            ~(~csr_en&csr_addr==12'h342),
+            ~(~csr_en&csr_addr==12'h304),
+            ~(~csr_en&csr_addr==12'h344),
+            ~(~csr_en&csr_addr==12'h300)
         },
         {
             mtvec,
@@ -133,8 +118,6 @@ module csr (
             mcause,
             mie,
             mip,
-            mtval,
-            mscratch,
             mstatus
         },
         dout
