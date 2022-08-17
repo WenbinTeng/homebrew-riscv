@@ -5,7 +5,6 @@
 `include "./util/_mux32.v"
 
 module ID (
-    input           rst,        // ACTIVE LOW
     input   [31:0]  pc,
     input   [31:0]  inst,
     input   [31:0]  inst_enable,
@@ -37,11 +36,11 @@ module ID (
     wire [31:0] s_type_imm = {{20{inst[31]}}, inst[31:25], inst[11:7]};
 
     reg  [7:0] alu_op_rom [255:0];
-    wire [7:0] _alu_op = alu_op_rom[{lui&auipc&jal&jalr&load&store, branch, immediate, register, inst[30], inst[14:12]}];
+    assign alu_op = alu_op_rom[{lui&auipc&jal&jalr&load&store, branch, immediate, register, inst[30], inst[14:12]}];
 
     wire [7:0] load_enable;
     wire [7:0] store_enable;
-    wire [7:0] _mem_op = {load_enable[0], load_enable[1], load_enable[2], load_enable[4], load_enable[5], store_enable[0], store_enable[1], store_enable[2]};
+    assign mem_op = {load_enable[0], load_enable[1], load_enable[2], load_enable[4], load_enable[5], store_enable[0], store_enable[1], store_enable[2]};
 
     _74x138 u_74x138_0 (
         inst[14:12],
@@ -60,7 +59,7 @@ module ID (
 
     wire [7:0] csr_enable;
     wire [7:0] csr_funct;
-    wire [7:0] _csr_op = {1'b0, csr_funct[0], csr_funct[1], csr_funct[2], csr_enable[1]&csr_enable[5], csr_enable[2]&csr_enable[6], csr_enable[3]&csr_enable[7], ~inst[14]};
+    assign csr_op = {1'b0, csr_funct[0], csr_funct[1], csr_funct[2], csr_enable[1]&csr_enable[5], csr_enable[2]&csr_enable[6], csr_enable[3]&csr_enable[7], ~inst[14]};
 
     _74x138 u_74x138_2 (
         inst[14:12],
@@ -75,15 +74,6 @@ module ID (
         csr,
         csr_enable[0],
         csr_funct
-    );
-
-    wire [8:0] op_dontcare;
-
-    _mux32 u_mux32_0 (
-        {9'b0,  8'b11111000,    8'b11111111,    7'b1111111},
-        {9'b0,  _alu_op,        _mem_op,        _csr_op   },
-        rst,
-        {op_dontcare, alu_op, mem_op, csr_op}
     );
 
     wire [31:0] imm;
