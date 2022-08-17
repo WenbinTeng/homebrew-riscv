@@ -10,7 +10,7 @@ module _at28c256 (
     assign io = ~oe ? mem[a] : 8'bz;
 
     initial begin
-        $readmemh("addi.coe", mem);
+        
     end
     
 endmodule

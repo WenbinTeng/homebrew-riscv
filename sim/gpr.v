@@ -1,7 +1,7 @@
-// `include "./include/_74x245.v"
-// `include "./include/_74x377.v"
-// `include "./include/_cy7c1021.v"
-// `include "./util/_reg32.v"
+`include "./include/_74x245.v"
+`include "./include/_cy7c1021.v"
+`include "./util/_bus32.v"
+`include "./util/_reg32.v"
 
 module gpr(
     input           aclk,   // simulate async write

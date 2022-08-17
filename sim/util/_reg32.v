@@ -1,4 +1,4 @@
-// `include "./include/_74x574.v"
+`include "./include/_74x574.v"
 
 module _reg32 (
     input oe,

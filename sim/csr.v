@@ -1,5 +1,5 @@
-// `include "./util/_bus32.v"
-// `include "./util/_reg32.v"
+`include "./util/_bus32.v"
+`include "./util/_reg32.v"
 
 module csr (
     input   aclk,

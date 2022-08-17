@@ -1,9 +1,9 @@
-// `include "./IF.v"
-// `include "./ID.v"
-// `include "./gpr.v"
-// `include "./csr.v"
-// `include "./shifter.v"
-// `include "./backend.v"
+`include "./IF.v"
+`include "./ID.v"
+`include "./gpr.v"
+`include "./csr.v"
+`include "./shifter.v"
+`include "./backend.v"
 
 module top (
     input           aclk,
