@@ -13,32 +13,13 @@ module backend (
     input   [ 7:0]  mem_op,     // op: lb, lh, lw, lbu, lhu, sb, sh, sw. ACTIVE LOW
     input           load,       // ACTIVE LOW
     input           store,      // ACTIVE LOW
-    input   [31:0]  qa,
-    input   [31:0]  qb,
+    input   [31:0]  alu_opr_1,
+    input   [31:0]  alu_opr_2,
     output  [31:0]  gpr_di,
-    input   [31:0]  alu_imm_1,
-    input   [31:0]  alu_imm_2,
-    input           alu_src_1,  // qa or imm1. ACTIVE LOW
-    input           alu_src_2,  // qb or imm2. ACTIVE LOW
     output          is_lt,      // ACTIVE LOW
     output          is_ltu,     // ACTIVE LOW
     output          is_zero     // ACTIVE LOW
 );
-    wire [31:0] operand_a;
-    wire [31:0] operand_b;
-
-    _mux32 u_mux32_0 (
-        qa,
-        alu_imm_1,
-        alu_src_1,
-        operand_a
-    );
-    _mux32 u_mux32_1 (
-        qb,
-        alu_imm_2,
-        alu_src_2,
-        operand_b
-    );
 
     wire [31:0] f;
     wire [31:0] h;
@@ -56,8 +37,8 @@ module backend (
     generate
         for (i = 0; i < 8; i = i + 1) begin
             _74x381 u_74x381 (
-                operand_a[i*4+3:i*4],
-                operand_b[i*4+3:i*4],
+                alu_opr_1[i*4+3:i*4],
+                alu_opr_2[i*4+3:i*4],
                 alu_op[2:0],
                 c[i],
                 gn[i],
@@ -99,13 +80,13 @@ module backend (
     );
 
     shifter u_shifter (
-        operand_a,
-        operand_b,
+        alu_opr_1,
+        alu_opr_2,
         alu_op[5:3],
         h
     );
 
-    assign is_lt   = ~((operand_a[31] & ~operand_b[31]) | (~operand_a[31] & ~operand_b[31] & f[31]) | (operand_a[31] & operand_b[31] & f[31]));
+    assign is_lt   = ~((alu_opr_1[31] & ~alu_opr_2[31]) | (~alu_opr_1[31] & ~alu_opr_2[31] & f[31]) | (alu_opr_1[31] & alu_opr_2[31] & f[31]));
     assign is_ltu  = ~c[8];
     assign is_zero = |f;
 

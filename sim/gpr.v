@@ -3,17 +3,17 @@
 `include "./util/_bus32.v"
 `include "./util/_reg32.v"
 
-module gpr(
-    input           aclk,   // simulate async write
-    input           clk,
-    input           gpr_we,
-    input   [ 4:0]  gpr_ra,
-    input   [ 4:0]  gpr_rb,
-    input   [ 4:0]  gpr_rd,
-    input   [31:0]  gpr_di,
-    input   [31:0]  csr_rdata,
-    output  [31:0]  qa,
-    output  [31:0]  qb
+module GPR (
+    input           aclk,       // Simulate async write clock signal
+    input           clk,        // Clock signal
+    input           gpr_we,     // Write enable
+    input   [ 4:0]  gpr_ra,     // Read address of port a
+    input   [ 4:0]  gpr_rb,     // Read address of port b
+    input   [ 4:0]  gpr_rd,     // Write address
+    input   [31:0]  gpr_di,     // Input data of ALU/MEM
+    input   [31:0]  csr_rdata,  // Input data of CSR
+    output  [31:0]  gpr_qa,     // Output data of port a
+    output  [31:0]  gpr_qb      // Output data of port b
 );
 
     wire [4:0] _ra;
@@ -22,6 +22,7 @@ module gpr(
     wire [2:0] _rb_dontcare;
     wire [31:0] di;
 
+    /* Combine two inputs through bus */
     _bus32 #(2) u_bus32_0 (
         {1'b0,      1'b0     },
         {gpr_di,    csr_rdata},
@@ -71,8 +72,8 @@ module gpr(
     wire [31:0] apin = buffer_di;
     wire [31:0] bpin = buffer_di;
 
-    assign qa = _ra == 5'b0 ? 32'b0 : apin;
-    assign qb = _rb == 5'b0 ? 32'b0 : bpin;
+    assign gpr_qa = _ra == 5'b0 ? 32'b0 : apin;
+    assign gpr_qb = _rb == 5'b0 ? 32'b0 : bpin;
 
     genvar i;
     generate

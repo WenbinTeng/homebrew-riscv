@@ -1,7 +1,7 @@
 `include "./util/_bus32.v"
 `include "./util/_reg32.v"
 
-module csr (
+module CSR (
     input   aclk,
     input   clk,
     input   [31:0] pc,

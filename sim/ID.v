@@ -1,47 +1,45 @@
-`include "./include/_74x138.v"
-`include "./util/_add32.v"
-`include "./util/_bus32.v"
-`include "./util/_dec32.v"
-`include "./util/_mux32.v"
+// `include "./include/_74x138.v"
+// `include "./util/_add32.v"
+// `include "./util/_bus32.v"
+// `include "./util/_dec32.v"
+// `include "./util/_mux32.v"
 
 module ID (
-    input   [31:0]  pc,
-    input   [31:0]  inst,
-    input   [31:0]  inst_enable,
-    output          alu_src_1,
-    output          alu_src_2,
-    output  [31:0]  alu_imm_1,
-    output  [31:0]  alu_imm_2,
+    input   [31:0]  pc,         // Program counter
+    input   [31:0]  inst,       // Instruciton
+    input   [31:0]  inst_en,    // Instruction operation code decode result, Active **LOW**
+    input   [31:0]  gpr_qa,     // GPR output port a
+    input   [31:0]  gpr_qb,     // GPR output port b
+    output  [31:0]  alu_opr_1,  // ALU operand a
+    output  [31:0]  alu_opr_2,  // ALU operand b
     output  [ 7:0]  alu_op,     // op: slt, sltu, sll, srl, sra, 74x381's op. ACTIVE LOW
     output  [ 7:0]  mem_op,     // op: lb, lh, lw, lbu, lhu, sb, sh, sw. ACTIVE LOW
-    output  [ 7:0]  csr_op,     // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, is_imm. ACTIVE LOW
+    output  [ 7:0]  csr_op,     // op: 0, ecall, ebreak, mret, csrrw, csrrs, csrrc, is_imm. ACTIVE LOW
     output          gpr_we,     // ACTIVE LOW
     output          load,       // ACTIVE LOW
     output          store       // ACTIVE LOW
 );
 
-    wire lui        = inst_enable[13];
-    wire auipc      = inst_enable[ 5];
-    wire jal        = inst_enable[27];
-    wire jalr       = inst_enable[25];
-    wire branch     = inst_enable[24];
-    wire immediate  = inst_enable[ 4];
-    wire register   = inst_enable[12];
-    assign load     = inst_enable[ 0];
-    assign store    = inst_enable[ 8];
-    wire csr        = inst_enable[28];
+    /* Designate which type of instruction is */
+    wire lui        = inst_en[13];
+    wire auipc      = inst_en[ 5];
+    wire jal        = inst_en[27];
+    wire jalr       = inst_en[25];
+    wire branch     = inst_en[24];
+    wire immediate  = inst_en[ 4];
+    wire register   = inst_en[12];
+    assign load     = inst_en[ 0];
+    assign store    = inst_en[ 8];
+    wire csr        = inst_en[28];
 
-    wire [31:0] u_type_imm = {inst[31:12], 12'b0};
-    wire [31:0] i_type_imm = {{20{inst[31]}}, inst[31:20]};
-    wire [31:0] s_type_imm = {{20{inst[31]}}, inst[31:25], inst[11:7]};
-
+    /* Use a ROM to decode instruction and generate operaion code */
     reg  [7:0] alu_op_rom [255:0];
     assign alu_op = alu_op_rom[{lui&auipc&jal&jalr&load&store, branch, immediate, register, inst[30], inst[14:12]}];
 
+    /* Decode load and store instruction, then output one-hot (active LOW) operation code. */
     wire [7:0] load_enable;
     wire [7:0] store_enable;
     assign mem_op = {load_enable[0], load_enable[1], load_enable[2], load_enable[4], load_enable[5], store_enable[0], store_enable[1], store_enable[2]};
-
     _74x138 u_74x138_0 (
         inst[14:12],
         1'b1,
@@ -57,10 +55,10 @@ module ID (
         store_enable
     );
 
+    /* Decode csr and privileged instruciton, then output one-hot (active LOW) operation code. */
     wire [7:0] csr_enable;
     wire [7:0] csr_funct;
     assign csr_op = {1'b0, csr_funct[0], csr_funct[1], csr_funct[2], csr_enable[1]&csr_enable[5], csr_enable[2]&csr_enable[6], csr_enable[3]&csr_enable[7], ~inst[14]};
-
     _74x138 u_74x138_2 (
         inst[14:12],
         1'b1,
@@ -76,32 +74,35 @@ module ID (
         csr_funct
     );
 
-    wire [31:0] imm;
+   /* Concatenate immediate number from instrcution for calculation */
+    wire [31:0] u_type_imm = {inst[31:12], 12'b0};
+    wire [31:0] i_type_imm = {{20{inst[31]}}, inst[31:20]};
+    wire [31:0] s_type_imm = {{20{inst[31]}}, inst[31:25], inst[11:7]};
 
+    /* Choose immediate number based on different instructions */
+    wire [31:0] imm;
     _bus32 #(3) u_bus32_0 (
         {lui&auipc,     load&immediate,     store     },
         {u_type_imm,    i_type_imm,         s_type_imm},
         imm
     );
 
-    assign alu_src_1 = load&store&immediate&register&branch;
-    assign alu_src_2 = register&branch;
-
-    _mux32 u_mux32_1 (
-        pc,
-        32'h0,
-        auipc&jal&jalr,
-        alu_imm_1
+    /* Select operands for 2 ports of ALU */
+    _bus32 #(3) u_bus32_1 (
+        {auipc&jal&jalr,    lui,    load&store&immediate&register&branch},
+        {pc,                32'h0,  gpr_qa                              },
+        alu_opr_1
     );
-    _mux32 u_mux32_2 (
-        32'h4,
-        imm,
-        jal&jalr,
-        alu_imm_2
+    _bus32 #(3) u_bus32_2 (
+        {jal&jalr,  lui&auipc&load&store&immediate,     register&branch},
+        {32'h4,     imm,                                gpr_qb         },
+        alu_opr_2
     );
 
-    assign gpr_we = lui&auipc&jal&jalr&load&immediate&register&(&csr_op[3:1])|(~rst)|(~|inst[11:7]);
+    /* Calculate whether GPR will be writen or not */
+    assign gpr_we = lui&auipc&jal&jalr&load&immediate&register&(&csr_op[3:1])|(~|inst[11:7]);
 
+    /* Initialize ROM for ALU operation */
     integer i;
     initial begin
         alu_op_rom[0] = 8'b11111011;
