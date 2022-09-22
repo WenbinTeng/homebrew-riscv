@@ -7,17 +7,17 @@
 module ID (
     input   [31:0]  pc,         // Program counter
     input   [31:0]  inst,       // Instruciton
-    input   [31:0]  inst_en,    // Instruction operation code decode result, Active **LOW**
+    input   [31:0]  inst_en,    // Instruction operation code decode result. Active **LOW**
     input   [31:0]  gpr_qa,     // GPR output port a
     input   [31:0]  gpr_qb,     // GPR output port b
     output  [31:0]  alu_opr_1,  // ALU operand a
     output  [31:0]  alu_opr_2,  // ALU operand b
-    output  [ 7:0]  alu_op,     // op: slt, sltu, sll, srl, sra, 74x381's op. ACTIVE LOW
-    output  [ 7:0]  mem_op,     // op: lb, lh, lw, lbu, lhu, sb, sh, sw. ACTIVE LOW
-    output  [ 7:0]  csr_op,     // op: 0, ecall, ebreak, mret, csrrw, csrrs, csrrc, is_imm. ACTIVE LOW
-    output          gpr_we,     // ACTIVE LOW
-    output          load,       // ACTIVE LOW
-    output          store       // ACTIVE LOW
+    output  [ 7:0]  alu_op,     // op: slt, sltu, sll, srl, sra, 74x381's op. Active LOW
+    output  [ 7:0]  mem_op,     // op: lb, lh, lw, lbu, lhu, sb, sh, sw. Active LOW
+    output  [ 7:0]  csr_op,     // op: 0, ecall, ebreak, mret, csrrw, csrrs, csrrc, is_imm. Active LOW
+    output          gpr_we,     // GPR write enable signal. Active LOW
+    output          load,       // Is load instruction. Active LOW
+    output          store       // is store instruction. Active LOW
 );
 
     /* Designate which type of instruction is */

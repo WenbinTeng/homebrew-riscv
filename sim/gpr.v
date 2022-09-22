@@ -1,7 +1,7 @@
-`include "./include/_74x245.v"
-`include "./include/_cy7c1021.v"
-`include "./util/_bus32.v"
-`include "./util/_reg32.v"
+// `include "./include/_74x245.v"
+// `include "./include/_cy7c1021.v"
+// `include "./util/_bus32.v"
+// `include "./util/_reg32.v"
 
 module GPR (
     input           aclk,       // Simulate async write clock signal
@@ -29,6 +29,7 @@ module GPR (
         di
     );
 
+    /* Activate gpr_ra and gpr_rb at high voltage of clock signal, and gpr_rd otherwise. */
     _74x245 u_74x245_a0 (
         ~clk,
         {3'b0, gpr_ra},
@@ -50,9 +51,9 @@ module GPR (
         {_rb_dontcare, _rb}
     );
 
+    /* Buffer write enable signal at negative edge, and use it at low voltage. */
     wire        buffer_we;
     wire [30:0] buffer_we_dontcare;
-
     _reg32 u_reg32_0 (
         clk,
         ~clk,
@@ -60,8 +61,8 @@ module GPR (
         {buffer_we_dontcare, buffer_we}
     );
     
+    /* Buffer write data at negative edge, and use it at low voltage. */
     wire [31:0] buffer_di;
-
     _reg32 u_reg32_1 (
         clk,
         ~clk,
@@ -69,12 +70,16 @@ module GPR (
         buffer_di
     );
 
+    /* Tri-state wire statement for RAM */
     wire [31:0] apin = buffer_di;
     wire [31:0] bpin = buffer_di;
 
-    assign gpr_qa = _ra == 5'b0 ? 32'b0 : apin;
-    assign gpr_qb = _rb == 5'b0 ? 32'b0 : bpin;
-
+    /* 
+        Instantiate 2 RAM instead of using a stack of registers. Usually, single
+        RAM chip have only one read port, we use two RAM to offer two read port,
+        which have to maintain the same content with each other. So, the write 
+        enable signal and data are valid for each RAM chip.
+    */
     genvar i;
     generate
         for (i = 0; i < 2; i = i + 1) begin
@@ -100,5 +105,9 @@ module GPR (
             );
         end
     endgenerate
+
+    /* Get output, assign 0 while read address is 0. */
+    assign gpr_qa = _ra == 5'b0 ? 32'b0 : apin;
+    assign gpr_qb = _rb == 5'b0 ? 32'b0 : bpin;
 
 endmodule

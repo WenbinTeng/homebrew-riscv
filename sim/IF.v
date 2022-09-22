@@ -6,18 +6,18 @@
 // `include "./include/_at28c256.v"
 
 module IF (
-    input           clk,        // Clock Signal
-    input           rst_flag,   // Reset Signal
-    input   [31:0]  rst_addr,   // Reset Address
-    input           int_flag,   // Interupt Signal
-    input   [31:0]  int_addr,   // Interupt Address
+    input           clk,        // Clock signal
+    input           rst_flag,   // Reset signal
+    input   [31:0]  rst_addr,   // Reset address
+    input           int_flag,   // Interupt signal
+    input   [31:0]  int_addr,   // Interupt address
     input   [31:0]  gpr_qa,     // GPR output port a
-    input           is_lt,      // Is a less than b, Active LOW
-    input           is_ltu,     // Is unsigned a less than unsigned b, Active LOW
-    input           is_zero,    // Is zero (a equals to b), Active LOW
+    input           is_lt,      // Is a less than b. Active LOW
+    input           is_ltu,     // Is unsigned a less than unsigned b. Active LOW
+    input           is_zero,    // Is zero (a equals to b). Active LOW
     output  [31:0]  pc,         // Program counter
     output  [31:0]  inst,       // Instruciton
-    output  [31:0]  inst_en     // Instruction operation code decode result, Active **LOW**
+    output  [31:0]  inst_en     // Instruction operation code decode result. Active **LOW**
 );
 
     /* Define program counter in different calculate stages */
