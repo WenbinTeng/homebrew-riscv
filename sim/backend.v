@@ -32,7 +32,7 @@ module backend (
     wire [2:0] c_dontcare;
     assign c[0] = 0;
 
-    /* Instantiate 4 ALU for 32-bit calculation */
+    /* Instantiate 8 ALU for 32-bit calculation */
     genvar i;
     generate
         for (i = 0; i < 8; i = i + 1) begin
