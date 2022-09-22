@@ -32,7 +32,7 @@ module backend (
     wire [2:0] c_dontcare;
     assign c[0] = 0;
 
-    /* Instantiate 8 ALU for 32-bit calculation */
+    /* Instantiate 8 ALUs for 32-bit calculation */
     genvar i;
     generate
         for (i = 0; i < 8; i = i + 1) begin
@@ -171,7 +171,7 @@ module backend (
     /* Tri-state wire statement for RAM */
     wire [31:0] dmem_data = store ? 32'bz : store_data;
 
-    /* Instantiate 4 RAM for 32-bit MEM access */
+    /* Instantiate 4 RAMs for 32-bit MEM access */
     generate
         for (i = 0; i < 4; i = i + 1) begin
             _is61c256 u_is61c256 (

@@ -75,7 +75,7 @@ module GPR (
     wire [31:0] bpin = buffer_di;
 
     /* 
-        Instantiate 2 RAM instead of using a stack of registers. Usually, single
+        Instantiate 2 RAMs instead of using a stack of registers. Usually, single
         RAM chip have only one read port, we use two RAM to offer two read port,
         which have to maintain the same content with each other. So, the write 
         enable signal and data are valid for each RAM chip.
