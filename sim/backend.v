@@ -100,10 +100,9 @@ module backend (
     wire srl  = alu_op[4];
     wire sra  = alu_op[3];
     wire [2:0] al = alu_op[2:0];
-    wire [31:0] alu_temp;
-    wire [31:0] alu_data;
 
     /* Choose shifter's result or not */
+    wire [31:0] alu_temp;
     _mux32 u_mux32_2 (
         h,
         f,
@@ -111,6 +110,7 @@ module backend (
         alu_temp
     );
     /* Choose slt(u) result or not */
+    wire [31:0] alu_data;
     _mux32 u_mux32_3 (
         {31'b0, (~slt&~is_lt)|(~sltu&~is_ltu)},
         alu_temp,
@@ -168,7 +168,7 @@ module backend (
         store_data
     );
 
-    /* Tri-state wire statement for RAM */
+    /* Tri-state wire statement for data pin of RAM */
     wire [31:0] dmem_data = store ? 32'bz : store_data;
 
     /* Instantiate 4 RAMs for 32-bit MEM access */
@@ -197,8 +197,8 @@ module backend (
 
     /* Select data to write for GPR */
     _bus32 #(2) u_bus32_3 (
-        {~(|alu_op[2:0])|~load, load},
-        {alu_data,          mem_load},
+        {~(|alu_op[2:0])|~load, load    },
+        {alu_data,              mem_load},
         gpr_di
     );
     
