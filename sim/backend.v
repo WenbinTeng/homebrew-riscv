@@ -5,7 +5,6 @@
 `include "./include/_is61c256.v"
 `include "./util/_bus32.v"
 `include "./util/_mux32.v"
-`include "./shifter.v"
 
 module backend (
     input           clk,
@@ -98,16 +97,67 @@ module backend (
         c_dontcare[2]
     );
 
-    shifter u_shifter (
-        operand_a,
-        operand_b,
-        alu_op[5:3],
-        h
-    );
-
     assign is_lt   = ~((operand_a[31] & ~operand_b[31]) | (~operand_a[31] & ~operand_b[31] & f[31]) | (operand_a[31] & operand_b[31] & f[31]));
     assign is_ltu  = ~c[8];
     assign is_zero = |f;
+
+    /* ------------------------------ */
+
+    wire [31:0] operand_pos;
+    wire [31:0] operand_rev;
+
+    generate
+        for (i = 0; i < 32; i = i + 1) begin
+            assign operand_pos[i] = operand_a[i];
+            assign operand_rev[i] = operand_a[31-i];
+        end
+    endgenerate
+    
+    wire [31:0] shift_layer [5:0];
+    wire [31:0] shift_right [4:0];
+
+    _mux32 u_mux32_2 (
+        operand_rev,
+        operand_pos,
+        alu_op[5],
+        shift_layer[0]
+    );
+
+    assign shift_right[0] = {{16{~alu_op[3] & shift_layer[0][31]}}, shift_layer[0][31:16]};
+    assign shift_right[1] = {{ 8{~alu_op[3] & shift_layer[1][31]}}, shift_layer[1][31: 8]};
+    assign shift_right[2] = {{ 4{~alu_op[3] & shift_layer[2][31]}}, shift_layer[2][31: 4]};
+    assign shift_right[3] = {{ 2{~alu_op[3] & shift_layer[3][31]}}, shift_layer[3][31: 2]};
+    assign shift_right[4] = {{ 1{~alu_op[3] & shift_layer[4][31]}}, shift_layer[4][31: 1]};
+
+    generate
+        for (i = 0; i < 5; i = i + 1) begin
+            _mux32 u_mux32 (
+                shift_layer[i],
+                shift_right[i],
+                operand_b[4-i],
+                shift_layer[i+1]
+            );
+        end
+    endgenerate
+
+    wire [31:0] h_pos;
+    wire [31:0] h_rev;
+
+    generate
+        for (i = 0; i < 32; i = i + 1) begin
+            assign h_pos[i] = shift_layer[5][i];
+            assign h_rev[i] = shift_layer[5][31-i];
+        end
+    endgenerate
+
+    _mux32 u_mux32_3 (
+        h_rev,
+        h_pos,
+        alu_op[5],
+        h
+    );
+
+    /* ------------------------------ */
 
     wire slt  = alu_op[7];
     wire sltu = alu_op[6];
@@ -118,18 +168,20 @@ module backend (
     wire [31:0] alu_temp;
     wire [31:0] alu_data;
 
-    _mux32 u_mux32_2 (
+    _mux32 u_mux32_4 (
         h,
         f,
         sll&srl&sra,
         alu_temp
     );
-    _mux32 u_mux32_3 (
+    _mux32 u_mux32_5 (
         {31'b0, (~slt&~is_lt)|(~sltu&~is_ltu)},
         alu_temp,
         slt&sltu,
         alu_data
     );
+
+    /* ------------------------------ */
 
     wire lb  = mem_op[7];
     wire lh  = mem_op[6];
@@ -194,7 +246,6 @@ module backend (
         end
     endgenerate
 
-    // data bus using 74x245
     wire [ 7:0] load_byte = ~byte_cs[0] ? dmem_data[7:0] : ~byte_cs[1] ? dmem_data[15:8] : ~byte_cs[2] ? dmem_data[23:16] : ~byte_cs[3] ? dmem_data[31:24] : 8'bz;
     wire [15:0] load_half = ~half_cs[0] ? {dmem_data[15:8], dmem_data[7:0]} : ~half_cs[1] ? {dmem_data[31:24], dmem_data[23:16]} : 16'bz;
     wire [31:0] load_word = ~word_cs ? dmem_data : 32'bz;
@@ -206,8 +257,8 @@ module backend (
     );
 
     _bus32 #(2) u_bus32_3 (
-        {~(|alu_op[2:0])|~load,   load    },
-        {alu_data,          mem_load},
+        {~(|alu_op[2:0])|~load, load    },
+        {alu_data,              mem_load},
         gpr_di
     );
     

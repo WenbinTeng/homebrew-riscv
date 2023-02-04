@@ -4,7 +4,8 @@
 `include "./util/_dec32.v"
 `include "./util/_mux32.v"
 
-module ID (
+module idecoder (
+    input           rst,
     input   [31:0]  pc,
     input   [31:0]  inst,
     input   [31:0]  inst_enable,

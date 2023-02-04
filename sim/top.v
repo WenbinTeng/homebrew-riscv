@@ -1,9 +1,8 @@
-`include "./IF.v"
-`include "./ID.v"
-`include "./gpr.v"
-`include "./csr.v"
-`include "./shifter.v"
-`include "./backend.v"
+`include "ifetcher.v"
+`include "idecoder.v"
+`include "csr.v"
+`include "gpr.v"
+`include "backend.v"
 
 module top (
     input           aclk,
@@ -38,14 +37,14 @@ module top (
     wire            store;
     wire    [31:0]  csr_rdata;
 
-    IF u_IF (clk, rst, 32'h0, int_flag, int_addr, qa, is_lt, is_ltu, is_zero, pc, inst, inst_enable);
+    ifetcher u_ifetcher (clk, rst, 32'h0, int_flag, int_addr, qa, is_lt, is_ltu, is_zero, pc, inst, inst_enable);
 
-    ID u_ID (rst, pc, inst, inst_enable, alu_src_1, alu_src_2, alu_imm_1, alu_imm_2, alu_op, mem_op, csr_op, gpr_we, load, store);
-
-    gpr u_gpr (aclk, clk, gpr_we, inst[19:15], inst[24:20], inst[11:7], gpr_di, csr_rdata, qa, qb);
+    idecoder u_idecoder (rst, pc, inst, inst_enable, alu_src_1, alu_src_2, alu_imm_1, alu_imm_2, alu_op, mem_op, csr_op, gpr_we, load, store);
 
     csr u_csr (aclk, clk, pc, qa, ei, ti, csr_op, inst[19:15], inst[31:20], csr_rdata, int_flag, int_addr);
 
+    gpr u_gpr (aclk, clk, gpr_we, inst[19:15], inst[24:20], inst[11:7], gpr_di, csr_rdata, qa, qb);
+    
     backend u_backend (clk, alu_op, mem_op, load, store, qa, qb, gpr_di, alu_imm_1, alu_imm_2, alu_src_1, alu_src_2, is_lt, is_ltu, is_zero);
 
 endmodule
