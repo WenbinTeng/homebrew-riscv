@@ -5,12 +5,15 @@ module _at28c256 (
     output [ 7:0] io    // Data Input/Output
 );
 
-    reg [7:0] mem [32767:0];
+    reg [7:0] mem [15:0];
 
-    assign io = ~oe ? mem[a] : 8'bz;
+    assign io = mem[a[3:0]];
 
     initial begin
-        
+        mem[0] = 8'b0;
+        mem[1] = 8'b0;
+        mem[2] = 8'b0;
+        mem[3] = 8'b0;
     end
     
 endmodule

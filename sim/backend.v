@@ -14,6 +14,7 @@ module backend (
     input           store,      // Is store instruction. Active LOW
     input   [31:0]  alu_opr_1,  // ALU operand a
     input   [31:0]  alu_opr_2,  // ALU operand a
+    input   [31:0]  mem_di,     // Input data from GPR port b
     output  [31:0]  gpr_di,     // Output data for GPR
     output          is_lt,      // Is a less than b. Active LOW
     output          is_ltu,     // Is unsigned a less than unsigned b. Active LOW
@@ -85,7 +86,7 @@ module backend (
         c_dontcare[2]
     );
 
-    assign is_lt   = ~((operand_a[31] & ~operand_b[31]) | (~operand_a[31] & ~operand_b[31] & f[31]) | (operand_a[31] & operand_b[31] & f[31]));
+    assign is_lt   = ~((alu_opr_1[31] & ~alu_opr_2[31]) | (~alu_opr_1[31] & ~alu_opr_2[31] & f[31]) | (alu_opr_1[31] & alu_opr_2[31] & f[31]));
     assign is_ltu  = ~c[8];
     assign is_zero = |f;
 
@@ -95,6 +96,8 @@ module backend (
     * --------------------------------------------------
     */
 
+    wire slt  = alu_op[7];
+    wire sltu = alu_op[6];
     wire [31:0] s = {31'b0, (~slt&~is_lt)|(~sltu&~is_ltu)};
 
     /*
@@ -103,6 +106,9 @@ module backend (
     * --------------------------------------------------
     */
     
+    wire sll = alu_op[5];
+    wire srl = alu_op[4];
+    wire sra = alu_op[3];
     wire [31:0] h;
 
     /* Original and reversed operand */
@@ -111,8 +117,8 @@ module backend (
 
     generate
         for (i = 0; i < 32; i = i + 1) begin
-            assign operand_pos[i] = operand_a[i];
-            assign operand_rev[i] = operand_a[31-i];
+            assign operand_pos[i] = alu_opr_1[i];
+            assign operand_rev[i] = alu_opr_1[31-i];
         end
     endgenerate
     
@@ -124,16 +130,16 @@ module backend (
     _mux32 u_mux32_0 (
         operand_rev,
         operand_pos,
-        alu_op[5],
+        sll,
         shift_layer[0]
     );
 
     /* Right shift, fill 1 if signed, reverse after shift if is left shift. */
-    assign shift_right[0] = {{16{~alu_op[3] & shift_layer[0][31]}}, shift_layer[0][31:16]};
-    assign shift_right[1] = {{ 8{~alu_op[3] & shift_layer[1][31]}}, shift_layer[1][31: 8]};
-    assign shift_right[2] = {{ 4{~alu_op[3] & shift_layer[2][31]}}, shift_layer[2][31: 4]};
-    assign shift_right[3] = {{ 2{~alu_op[3] & shift_layer[3][31]}}, shift_layer[3][31: 2]};
-    assign shift_right[4] = {{ 1{~alu_op[3] & shift_layer[4][31]}}, shift_layer[4][31: 1]};
+    assign shift_right[0] = {{16{~sra & shift_layer[0][31]}}, shift_layer[0][31:16]};
+    assign shift_right[1] = {{ 8{~sra & shift_layer[1][31]}}, shift_layer[1][31: 8]};
+    assign shift_right[2] = {{ 4{~sra & shift_layer[2][31]}}, shift_layer[2][31: 4]};
+    assign shift_right[3] = {{ 2{~sra & shift_layer[3][31]}}, shift_layer[3][31: 2]};
+    assign shift_right[4] = {{ 1{~sra & shift_layer[4][31]}}, shift_layer[4][31: 1]};
 
     /* Select output for each shift layer based on the bits of counter */
     generate
@@ -141,7 +147,7 @@ module backend (
             _mux32 u_mux32 (
                 shift_layer[i],
                 shift_right[i],
-                operand_b[4-i],
+                alu_opr_2[4-i],
                 shift_layer[i+1]
             );
         end
@@ -161,7 +167,7 @@ module backend (
     _mux32 u_mux32_1 (
         h_rev,
         h_pos,
-        alu_op[5],
+        sll,
         h
     );
 
@@ -170,14 +176,7 @@ module backend (
     * Part IV: Select the calculation output.
     * --------------------------------------------------
     */
-
-    wire slt  = alu_op[7];
-    wire sltu = alu_op[6];
-    wire sll  = alu_op[5];
-    wire srl  = alu_op[4];
-    wire sra  = alu_op[3];
-    wire [2:0] al = alu_op[2:0];
-
+    
     /* Choose shifter's result or not */
     wire [31:0] alu_temp;
     _mux32 u_mux32_2 (
@@ -189,7 +188,7 @@ module backend (
     /* Choose slt(u) result or not */
     wire [31:0] alu_data;
     _mux32 u_mux32_3 (
-        {31'b0, (~slt&~is_lt)|(~sltu&~is_ltu)},
+        s,
         alu_temp,
         slt&sltu,
         alu_data
@@ -241,9 +240,9 @@ module backend (
     assign byte_enable[3] = byte_cs[3] & half_cs[1] & word_cs;
 
     /* Organize store data for SB/SH/SW instruction */
-    wire [31:0] store_byte = {qb[7:0], qb[7:0], qb[7:0], qb[7:0]};
-    wire [31:0] store_half = {qb[15:8], qb[7:0], qb[15:8], qb[7:0]};
-    wire [31:0] store_word = qb;
+    wire [31:0] store_byte = {mem_di[7:0], mem_di[7:0], mem_di[7:0], mem_di[7:0]};
+    wire [31:0] store_half = {mem_di[15:8], mem_di[7:0], mem_di[15:8], mem_di[7:0]};
+    wire [31:0] store_word = mem_di;
     wire [31:0] store_data;
     _bus32 #(3) u_bus32_1 (
         {sb,            sh,             sw        },
