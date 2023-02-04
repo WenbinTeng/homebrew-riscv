@@ -1,22 +1,23 @@
-`include "./util/_bus32.v"
-`include "./util/_reg32.v"
-`include "./util/_mux32.v"
+`include "util/_bus32.v"
+`include "util/_reg32.v"
+`include "util/_mux32.v"
 
-module csr (
-    input   aclk,
-    input   clk,
-    input   [31:0] pc,
-    input   [31:0] qa,
-    input   ei,                 // external interrupt, ACTIVE LOW
-    input   ti,                 // timer interrupt, ACTIVE LOW
-    input   [ 7:0] csr_op,      // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, is_imm. ACTIVE LOW
-    input   [ 4:0] csr_zimm,
-    input   [11:0] csr_addr,
-    output  [31:0] csr_rdata,
-    output         int_flag,
-    output  [31:0] int_addr
+module CSR (
+    input           aclk,       // Simulate async write clock signal
+    input           clk,        // Clock signal
+    input           ei,         // External interrupt, ACTIVE LOW
+    input           ti,         // Timer interrupt, ACTIVE LOW
+    input   [31:0]  pc,         // Program Counter
+    input   [31:0]  gpr_qa,     // Output data of port a
+    input   [ 7:0]  csr_op,     // op: ecall, ebreak, mret, csrrw, csrrs, csrrc, is_imm. ACTIVE LOW
+    input   [ 4:0]  csr_zimm,   // Immediate number from instruciton
+    input   [11:0]  csr_addr,   // Read and write address
+    output  [31:0]  csr_rdata,  // CSR registers read data output
+    output          int_flag,   // interrupt signal
+    output  [31:0]  int_addr    // interrupt address
 );
 
+    /* CSR registers' signal */
     wire [31:0] mtvec;
     wire [31:0] mepc;
     wire [31:0] mcause;
@@ -24,6 +25,7 @@ module csr (
     wire [31:0] mip;
     wire [31:0] mstatus;
 
+    /* CSR operation one-hot (active LOW) code */
     wire ecall  = csr_op[6];
     wire ebreak = csr_op[5];
     wire mret   = csr_op[4];
@@ -32,28 +34,41 @@ module csr (
     wire csrrc  = csr_op[1];
     wire is_imm = csr_op[0];
 
+    /*
+        Only if a trap instruction or external interrupt is encountered and
+        the corresponding flag (in Mie register) is valid and global interrupt
+        is enable (for machine level, in Mstatus), the interrupt occurs.
+        Active LOW.
+    */
     wire csr_en = csrrw&csrrs&csrrc;
     wire ecall_en = ~(~ecall&mie[3]&mstatus[3]);
     wire ebreak_en = ~(~ebreak&mie[3]&mstatus[3]);
     wire ei_en = ~(mip[11]&mie[11]);
     wire ti_en = ~(mip[7]&mie[7]);
 
+    /* interrupt handling state. Active LOW */
     wire        _int_handle = ecall_en & ebreak_en & ei_en & ti_en;
     wire        _int_flag = _int_handle & mret;
     wire [30:0] _int_flag_dontcare;
     wire [31:0] _int_addr;
 
+    /* IO data wire */
     wire [31:0] wdata;
     wire [31:0] din;
     wire [31:0] dout;
 
+    /* Choose operand */
     _mux32 u_mux32_0 (
         {27'b0, csr_zimm},
-        qa,
+        gpr_qa,
         is_imm,
         wdata
     );
 
+    /*
+        When an interrupt occurs, take Mtvec as the program entrance.
+        When the interrupt returns, take Mepc as the return address.
+    */
     _mux32 u_mux32_1 (
         mepc,
         mtvec,
@@ -61,12 +76,14 @@ module csr (
         _int_addr
     );
 
+    /* Write/Set/Clear the flag(s) in CSRs */
     _bus32 #(3) u_bus32_0 (
         {csrrw,     csrrs,          csrrc       },
         {wdata,     dout|wdata,     dout&wdata  },
         din
     );
 
+    /* CSR operations, for more infornmations, please refer to Risc-V Manual. */
     _reg32 mtvec_reg (
         1'b0,
         ~aclk&(~csr_en&csr_addr==12'h305),
@@ -104,6 +121,7 @@ module csr (
         mstatus
     );
 
+    /* Select output data based on the read address */
     _bus32 #(6) u_bus32_1 (
         {
             ~(~csr_en&csr_addr==12'h305),
@@ -123,16 +141,15 @@ module csr (
         },
         dout
     );
-
     assign csr_rdata = dout;
 
+    /* Buffer interrupt signal and address in negative edge to avoid gpr_qa changes */
     _reg32 u_reg32_1 (
         1'b0,
         ~aclk,
         {31'b0, _int_flag},
         {_int_flag_dontcare, int_flag}
     );
-
     _reg32 u_reg32_2 (
         1'b0,
         ~aclk,
