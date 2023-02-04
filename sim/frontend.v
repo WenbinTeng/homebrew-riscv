@@ -1,11 +1,10 @@
-`include "include/_74x138.v"
-`include "include/_74x245.v"
 `include "include/_at28c256.v"
 `include "include/_cy7c1021.v"
-`include "util/_add32.v"
-`include "util/_bus32.v"
-`include "util/_dec32.v"
-`include "util/_mux32.v"
+// `include "util/_add32.v"
+// `include "util/_bus32.v"
+// `include "util/_dec32.v"
+// `include "util/_mux32.v"
+// `include "util/_reg32.v"
 
 module frontend (
     input           aclk,       // Simulate async write clock signal
@@ -76,8 +75,8 @@ module frontend (
     _74x138 u_74x138 (
         inst[14:12],
         1'b1,
-        brh,
-        brh,
+        branch,
+        branch,
         brh_en
     );
 
@@ -414,8 +413,8 @@ module frontend (
     /* Write/Set/Clear the flag(s) in CSRs */
     wire [31:0] _csr_di;
     _bus32 #(3) u_bus32_7 (
-        {csrrw,     csrrs,          csrrc       },
-        {wdata,     dout|wdata,     dout&wdata  },
+        {csrrw,     csrrs,          csrrc        },
+        {csr_di,    csr_do|csr_di,  csr_do&csr_di},
         _csr_di
     );
 

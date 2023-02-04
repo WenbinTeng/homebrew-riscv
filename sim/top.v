@@ -1,3 +1,8 @@
+`include "util/_add32.v"
+`include "util/_bus32.v"
+`include "util/_dec32.v"
+`include "util/_mux32.v"
+`include "util/_reg32.v"
 `include "frontend.v"
 `include "backend.v"
 
