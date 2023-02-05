@@ -8,7 +8,7 @@
 module backend (
     input           clk,        // Clock signal
     input   [ 7:0]  alu_op,     // op: slt, sltu, sll, srl, sra, 74x381's op. ACTIVE LOW
-    input   [ 7:0]  mem_op,     // op: lb, lh, lw, lbu, lhu, sb, sh, sw. ACTIVE LOW
+    input   [ 7:0]  mem_op,     // op: sw, sh, sb, lhu, lbu, lw, lh, lb. ACTIVE LOW
     input           load,       // Is load instruction. Active LOW
     input           store,      // Is store instruction. Active LOW
     input   [31:0]  alu_opr_1,  // ALU operand a
@@ -200,14 +200,14 @@ module backend (
     */
 
     /* MEM operation one-hot (active LOW) code */
-    wire lb  = mem_op[7];
-    wire lh  = mem_op[6];
-    wire lw  = mem_op[5];
-    wire lbu = mem_op[4];
-    wire lhu = mem_op[3];
-    wire sb  = mem_op[2];
-    wire sh  = mem_op[1];
-    wire sw  = mem_op[0];
+    wire sw  = mem_op[7];
+    wire sh  = mem_op[6];
+    wire sb  = mem_op[5];
+    wire lhu = mem_op[4];
+    wire lbu = mem_op[3];
+    wire lw  = mem_op[2];
+    wire lh  = mem_op[1];
+    wire lb  = mem_op[0];
     wire [31:0] mem_load;
 
     /* C(hip) S(elect) signal based on byte/half/word access */

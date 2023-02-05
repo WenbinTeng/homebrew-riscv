@@ -14,7 +14,7 @@ module frontend (
     input           rst_flag,   // Reset signal
     input   [31:0]  rst_addr,   // Reset address
     output  [ 7:0]  alu_op,     // op: slt, sltu, sll, srl, sra, 74x381's op. ACTIVE LOW
-    output  [ 7:0]  mem_op,     // op: lb, lh, lw, lbu, lhu, sb, sh, sw. ACTIVE LOW
+    output  [ 7:0]  mem_op,     // op: sw, sh, sb, lhu, lbu, lw, lh, lb. ACTIVE LOW
     output          load,       // Is load instruction. Active LOW
     output          store,      // Is store instruction. Active LOW
     output  [31:0]  alu_opr_1,  // ALU operand a
@@ -183,8 +183,8 @@ module frontend (
         store,
         store_enable
     );
-    /* op: lb, lh, lw, lbu, lhu, sb, sh, sw. ACTIVE LOW */
-    assign mem_op = {load_enable[0], load_enable[1], load_enable[2], load_enable[4], load_enable[5], store_enable[0], store_enable[1], store_enable[2]};
+    /* op: sw, sh, sb, lhu, lbu, lw, lh, lb. ACTIVE LOW */
+    assign mem_op = {store_enable, load_enable[5:4], load_enable[2:0]};
 
     /* Decode csr and privileged instruciton, then output one-hot (active LOW) operation code. */
     wire [7:0] csr_enable;
