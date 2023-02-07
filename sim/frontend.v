@@ -206,28 +206,20 @@ module frontend (
     /* op: ecall, ebreak, mret, csrrw, csrrs, csrrc, is_imm. ACTIVE LOW */
     wire [7:0] csr_op = {1'b0, csr_funct[0], csr_funct[1], csr_funct[2], csr_enable[1]&csr_enable[5], csr_enable[2]&csr_enable[6], csr_enable[3]&csr_enable[7], ~inst[14]};
 
-    /* Choose immediate number based on different instructions */
-    wire [31:0] imm;
-    _bus32 #(3) u_bus32_3 (
-        {lui&auipc,     load&immediate,     store     },
-        {u_type_imm,    i_type_imm,         s_type_imm},
-        imm
-    );
-
     /* Select operands for 2 ports of ALU */
-    _bus32 #(3) u_bus32_4 (
-        {auipc&jal&jalr,    lui,    load&store&immediate&register&branch},
-        {curr_pc,           32'h0,  gpr_qa                              },
+    _bus32 #(3) u_bus32_3 (
+        {auipc&jal&jalr,    lui,            load&store&immediate&register&branch},
+        {curr_pc,           32'h0,          gpr_qa                              },
         alu_opr_1
     );
-    _bus32 #(3) u_bus32_5 (
-        {jal&jalr,  lui&auipc&load&store&immediate,     register&branch},
-        {32'h4,     imm,                                gpr_qb         },
+    _bus32 #(5) u_bus32_4 (
+        {jal&jalr,          lui&auipc,      load&immediate,     store,          register&branch},
+        {32'h4,             u_type_imm,     i_type_imm,         s_type_imm,     gpr_qb         },
         alu_opr_2
     );
 
     /* Calculate whether GPR will be writen or not */
-    assign gpr_we = lui&auipc&jal&jalr&load&immediate&register&(&csr_op[3:1])|(~|inst[11:7]);
+    assign gpr_we = lui&auipc&jal&jalr&load&immediate&register&csr_op[3]&csr_op[2]&csr_op[1]|(~|inst[11:7]);
 
     /*
     * --------------------------------------------------
@@ -242,7 +234,7 @@ module frontend (
 
     /* Select the GPR input data, combine two inputs from ALU/MEM and CSR through bus */
     wire [31:0] _gpr_di;
-    _bus32 #(2) u_bus32_6 (
+    _bus32 #(2) u_bus32_5 (
         {1'b0,      1'b0  },
         {gpr_di,    csr_do},
         _gpr_di
@@ -412,7 +404,7 @@ module frontend (
 
     /* Write/Set/Clear the flag(s) in CSRs */
     wire [31:0] _csr_di;
-    _bus32 #(3) u_bus32_7 (
+    _bus32 #(3) u_bus32_6 (
         {csrrw,     csrrs,          csrrc        },
         {csr_di,    csr_do|csr_di,  csr_do&csr_di},
         _csr_di
@@ -457,7 +449,7 @@ module frontend (
     );
 
     /* Select output data based on the read address */
-    _bus32 #(6) u_bus32_8 (
+    _bus32 #(6) u_bus32_7 (
         {
             ~(~csr_en&csr_addr==12'h305),
             ~(~csr_en&csr_addr==12'h341),
