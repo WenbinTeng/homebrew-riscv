@@ -1,10 +1,10 @@
 `include "include/_at28c256.v"
 `include "include/_cy7c1021.v"
-// `include "util/_add32.v"
-// `include "util/_bus32.v"
-// `include "util/_dec32.v"
-// `include "util/_mux32.v"
-// `include "util/_reg32.v"
+`include "util/_add32.v"
+`include "util/_bus32.v"
+`include "util/_dec32.v"
+`include "util/_mux32.v"
+`include "util/_reg32.v"
 
 module frontend (
     input           aclk,       // Simulate async write clock signal
