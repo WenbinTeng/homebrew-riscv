@@ -538,7 +538,7 @@ void decode10() {
         string sll_n = (sll == "1") ? "0" : "1";
 
         string shiftSign = "0";
-        if (sra == "1" && srcA31 == "1") {
+        if (sra == "0" && srcA31 == "1") {
             shiftSign = "1";
         }
 
@@ -622,31 +622,44 @@ void decode12() {
         string aluData15 = bitStr.substr(6, 1); // data15
         string aluData0 = bitStr.substr(7, 2);  // data1(MSB), data0
 
-        string byteSelect = "1111";
-        if (loadop == "11110" || loadop == "10111") { // lb or lbu
-            if (aluData0 == "00") {
-                byteSelect = "1110";
-            } else if (aluData0 == "01") {
-                byteSelect = "1101";
-            } else if (aluData0 == "10") {
-                byteSelect = "1011";
-            } else if (aluData0 == "11") {
-                byteSelect = "0111";
-            }
-        }
+        // Select mem data 7-0
+        string byteSelect = "1111"; // ram31-24(MSB), ram23-16, ram15-8, ram7-0
+        // Select mem data 15-8
+        string halfSelect = "1111"; // sign(MSB), sign, ram31-24, ram15-8
+        // Select mem data 31-24 (MSB) and 23-16
+        string wordSelect = "1111"; // sign(MSB), ram31-24, sign, ram23-16
 
-        string halfSelect = "1111";
-        if (loadop == "11101" || loadop == "01111") { // lh or lhu
+        if (loadop == "11011") { // lw
+            byteSelect = "1110";
+            halfSelect = "1110";
+            // wordSelect = "1010";
+        } else if (loadop == "11101" || loadop == "01111") { // lh or lhu
             if (aluData0 == "00" || aluData0 == "01") {
+                byteSelect = "1110";
                 halfSelect = "1110";
+                // wordSelect = "0101";
             } else if (aluData0 == "10" || aluData0 == "11") {
+                byteSelect = "1011";
                 halfSelect = "1101";
+                // wordSelect = "0101";
             }
         } else if (loadop == "11110" || loadop == "10111") { // lb or lbu
-            if (aluData0 == "00" || aluData0 == "01") {
+            if (aluData0 == "00") {
+                byteSelect = "1110";
                 halfSelect = "1011";
-            } else if (aluData0 == "10" || aluData0 == "11") {
+                // wordSelect = "0101";
+            } else if (aluData0 == "01") {
+                byteSelect = "1101";
+                halfSelect = "1011";
+                // wordSelect = "0101";
+            } else if (aluData0 == "10") {
+                byteSelect = "1011";
                 halfSelect = "0111";
+                // wordSelect = "0101";
+            } else if (aluData0 == "11") {
+                byteSelect = "0111";
+                halfSelect = "0111";
+                // wordSelect = "0101";
             }
         }
 
@@ -669,12 +682,50 @@ void decode13() {
         string aluData15 = bitStr.substr(6, 1); // data15
         string aluData0 = bitStr.substr(7, 2);  // data1(MSB), data0
 
-        string wordSelect = "1111";
+        // Select mem data 7-0
+        string byteSelect = "1111"; // ram31-24(MSB), ram23-16, ram15-8, ram7-0
+        // Select mem data 15-8
+        string halfSelect = "1111"; // sign(MSB), sign, ram31-24, ram15-8
+        // Select mem data 31-24 (MSB) and 23-16
+        string wordSelect = "1111"; // sign(MSB), ram31-24, sign, ram23-16
+
         if (loadop == "11011") { // lw
-            wordSelect = "0101";
-        } else if (loadop == "11101" || loadop == "01111" || loadop == "11110" || loadop == "10111") { // lh or lhu or lb or lbu
+            // byteSelect = "1110";
+            // halfSelect = "1110";
             wordSelect = "1010";
+        } else if (loadop == "11101" || loadop == "01111") { // lh or lhu
+            if (aluData0 == "00" || aluData0 == "01") {
+                // byteSelect = "1110";
+                // halfSelect = "1110";
+                wordSelect = "0101";
+            } else if (aluData0 == "10" || aluData0 == "11") {
+                // byteSelect = "1011";
+                // halfSelect = "1101";
+                wordSelect = "0101";
+            }
+        } else if (loadop == "11110" || loadop == "10111") { // lb or lbu
+            if (aluData0 == "00") {
+                // byteSelect = "1110";
+                // halfSelect = "1011";
+                wordSelect = "0101";
+            } else if (aluData0 == "01") {
+                // byteSelect = "1101";
+                // halfSelect = "1011";
+                wordSelect = "0101";
+            } else if (aluData0 == "10") {
+                // byteSelect = "1011";
+                // halfSelect = "0111";
+                wordSelect = "0101";
+            } else if (aluData0 == "11") {
+                // byteSelect = "0111";
+                // halfSelect = "0111";
+                wordSelect = "0101";
+            }
         }
+
+        string byte2writeStr = wordSelect;
+        char byte2write = (char)std::stoi(byte2writeStr, nullptr, 2);
+        outfile.put(byte2write);
     }
 
     outfile.close();
